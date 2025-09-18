@@ -58,7 +58,7 @@ html,body{height:100%;margin:0;font-family:'XiXi',Inter,system-ui,Segoe UI,Robot
 
   <!-- Auth -->
   <div id="authBox">
-    <input type="text" id="authUsername" placeholder="Choose your Chat ID" />
+    <input type="text" id="authUsername" placeholder="Chat ID" />
     <input type="email" id="authEmail" placeholder="Email" />
     <input type="password" id="authPassword" placeholder="Password" />
     <div class="controls-row">
@@ -141,7 +141,7 @@ setPersistence(auth, browserLocalPersistence).catch(console.error);
 
 // Utility: random guest name
 function randomGuest(){
-  return "GUEST"+Math.floor(1000 + Math.random()*9000);
+  return "GUEST"+ Math.floor(1000 + Math.random()*9000);
 }
 
 // Signup
@@ -183,7 +183,7 @@ onAuthStateChanged(auth, async user=>{
   const uidEl = document.getElementById("uid");
   if(user){
     const userDoc = await getDoc(doc(db,"users",user.uid));
-    const chatId = userDoc.exists()?userDoc.data().chatId:randomGuest();
+    const chatId = userDoc.exists()?userDoc.data().chatId:randomGuest ();
     let stars = userDoc.exists()?userDoc.data().stars:0;
     currentUser = {uid:user.uid, chatId};
     profileName.textContent = chatId;
@@ -218,7 +218,7 @@ onAuthStateChanged(auth, async user=>{
 
   }else{
     currentUser=null;
-    profileName.textContent=randomGuest();
+    profileName.textContent=randomGuest ();
     uidEl.textContent="—";
     document.getElementById("authBox").style.display="block";
     document.getElementById("signoutBtn").style.display="none";
