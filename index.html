@@ -3,15 +3,15 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
-<title>Xixi — Money Talk 💖</title>
+<title>Xixi — Money Talk 💸</title>
 <link rel="icon" href="data:," />
 <style>
 :root{
   --bg:#000;
   --card:#111;
   --muted:#aaa;
-  --accent:#FF007F;
-  --glass: rgba(255,255,255,0.03);
+  --accent:#FF1493; /* deep pink neon */
+  --glass: rgba(255,20,147,0.1);
 }
 html,body{height:100%;margin:0;font-family:'XiXi',Inter,system-ui,Segoe UI,Roboto,"Helvetica Neue",Arial;color:#fff;background:var(--bg);}
 .app{display:flex;flex-direction:column;height:100%;gap:12px;padding:12px;box-sizing:border-box;}
@@ -26,21 +26,21 @@ html,body{height:100%;margin:0;font-family:'XiXi',Inter,system-ui,Segoe UI,Robot
 #videoContainer{width:100%;aspect-ratio:16/9;background:#111;border-radius:12px;overflow:hidden;position:sticky;top:0;z-index:5;}
 #videoContainer iframe{width:100%;height:100%;border:0;border-radius:12px;}
 #messages{flex:1;overflow:auto;padding:8px;display:flex;flex-direction:column;gap:6px;border-radius:8px;background:#000;margin-bottom:6px;}
-.msg{padding:6px 8px;border-radius:10px;background:var(--glass);max-width:85%;position:relative;display:flex;gap:6px;align-items:center;opacity:0;animation:fadeInUp 0.25s forwards; justify-content:flex-start;}
-.msg.me {background: rgba(255,0,127,0.08);}
+.msg{padding:6px 8px;border-radius:10px;background:var(--glass);max-width:85%;position:relative;display:flex;gap:6px;align-items:center;opacity:0;animation:fadeInUp 0.25s forwards; justify-content:flex-start;} 
+.msg.me {background: rgba(255,20,147,0.08);}
 .msg .meta{font-weight:700;font-size:14px;}  
 .msg .content{font-size:12px;color:#fff;white-space:pre-wrap;}  
 .send-area{display:flex;align-items:center;gap:6px;background:var(--card);padding:6px 12px;position:sticky;bottom:0;z-index:10;border-top:1px solid rgba(255,255,255,0.05);border-radius:20px;}
 .send-area input{flex:1;padding:10px 14px;border-radius:999px;border:1px solid rgba(255,255,255,0.1);background:#111;color:#fff;font-size:14px;outline:none;transition:0.2s all;}
 .send-area input::placeholder{color:var(--muted);}
-.send-area input:focus{border-color:var(--accent);box-shadow:0 0 10px rgba(255,0,127,0.4);}
+.send-area input:focus{border-color:var(--accent);box-shadow:0 0 10px rgba(255,20,147,0.4);}
 .send-area button.btn{padding:8px 14px;border-radius:999px;background:var(--accent);color:#000;cursor:pointer;font-weight:600;transition:0.2s all;}
 .send-area button.btn:hover{filter:brightness(1.1);}
 .profile{display:flex;flex-direction:column;gap:4px;margin-top:12px;}
 .profile .small{font-size:12px;color:var(--muted);}
 .star-popup{position:fixed;left:50%;top:18%;transform:translateX(-50%);background:var(--card);padding:6px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.05);display:none;z-index:1000;color:var(--accent);font-size:12px;white-space:nowrap;text-align:center;max-width:90%;}
 .redeem-btn{background:var(--accent);color:#000;font-size:11px;padding:4px 8px;border-radius:6px;cursor:pointer;font-weight:600;margin-left:auto;text-decoration:none;}
-.admin-controls{display:none;flex-direction:column;gap:6px;margin-top:6px;}
+.admin-panel{display:none;flex-direction:column;gap:6px;margin-top:12px;background:#111;padding:6px;border-radius:8px;border:1px solid var(--accent);}
 @keyframes fadeInUp{to{opacity:1;transform:translateY(0);}}
 @media (max-width:600px){.send-area{padding:6px 8px;}.send-area button.btn{padding:6px 12px;font-size:13px;}.send-area input{font-size:13px;padding:8px 12px;}.brand{font-size:24px;}.room-desc{font-size:11px;}}
 </style>
@@ -49,11 +49,11 @@ html,body{height:100%;margin:0;font-family:'XiXi',Inter,system-ui,Segoe UI,Robot
 
 <div class="app">
   <div class="brand">乂丨乂丨</div>
-  <div class="room-desc">Money Talk 💖 — Chat. Own your vibe.</div>
+  <div class="room-desc">Money Talk 💸 — Chat. Own your vibe.</div>
 
   <!-- Auth -->
   <div id="authBox">
-    <input type="text" id="authUsername" placeholder="Desired Chat ID" />
+    <input type="text" id="authUsername" placeholder="Chat ID" />
     <input type="email" id="authEmail" placeholder="Email" />
     <input type="password" id="authPassword" placeholder="Password" />
     <div class="controls-row">
@@ -64,9 +64,11 @@ html,body{height:100%;margin:0;font-family:'XiXi',Inter,system-ui,Segoe UI,Robot
     <div id="authMsg" class="small-ghost" style="margin-top:6px"></div>
   </div>
 
-  <!-- Admin Controls -->
-  <div class="admin-controls" id="adminControls">
-    <button id="addWhitelist" class="btn">Add Email to Whitelist</button>
+  <!-- Admin Panel -->
+  <div class="admin-panel" id="adminPanel">
+    <div><strong>Admin Controls</strong></div>
+    <textarea id="whitelistInput" placeholder="Enter one email per line"></textarea>
+    <button id="saveWhitelist" class="btn">Save Whitelist</button>
   </div>
 
   <!-- Center panel: Video + Chat -->
@@ -77,7 +79,7 @@ html,body{height:100%;margin:0;font-family:'XiXi',Inter,system-ui,Segoe UI,Robot
 
     <div id="messages"></div>
 
-    <div class="send-area" id="sendArea" style="display:none">
+    <div class="send-area">
       <input type="text" id="messageInput" placeholder="Type your message..." />
       <button id="sendBtn" class="btn">Send</button>
     </div>
@@ -87,19 +89,13 @@ html,body{height:100%;margin:0;font-family:'XiXi',Inter,system-ui,Segoe UI,Robot
   <div class="profile">
     <div style="display:flex;align-items:center;justify-content:space-between;">
       <div>
-        <strong id="profileName">Guest</strong>
+        <strong id="profileName">GUEST 0000</strong>
         <div class="small">Stars: <span id="starCount">0</span> ⭐</div>
         <div class="small">UID: <span id="uid">—</span></div>
       </div>
       <a href="https://xixi.live" target="_blank" class="redeem-btn">Redeem</a>
     </div>
   </div>
-</div>
-
-<!-- Star popup -->
-<div class="star-popup" id="starPopup">
-  <div id="starText">You've just earned +1 star! ⭐</div>
-  <div style="text-align:right;margin-top:6px"><button id="closeStar" class="ghost">Close</button></div>
 </div>
 
 <script type="module">
@@ -123,88 +119,87 @@ const db = getFirestore(app);
 
 let currentUser = null;
 const userColors = {};
+
 function getColorForUser(chatId){
   if(!userColors[chatId]){
-    const colors = ["#FF6B6B","#FF007F","#FFD93D","#B980F0","#FF9F1C"];
+    const colors = ["#FF6B6B","#6BCB77","#4D96FF","#FFD93D","#B980F0","#FF9F1C"];
     userColors[chatId] = colors[Math.floor(Math.random()*colors.length)];
   }
   return userColors[chatId];
 }
 
-setPersistence(auth, browserLocalPersistence);
-
-function getRandomGuestName(){
-  return 'Guest ' + Math.floor(Math.random()*9000+1000);
+// Random Guest Name
+function randomGuest(){
+  return "GUEST " + Math.floor(Math.random()*9000+1000);
 }
 
-async function isEmailWhitelisted(email){
-  const docSnap = await getDoc(doc(db, 'whitelist', email));
-  return docSnap.exists() && docSnap.data().allowed;
-}
+// Persistence
+setPersistence(auth, browserLocalPersistence).catch(err => console.error(err));
 
-// Sign up
-document.getElementById('signupBtn').addEventListener('click', async()=>{
-  const chatId = document.getElementById('authUsername').value.trim();
-  const email = document.getElementById('authEmail').value;
-  const pass = document.getElementById('authPassword').value;
+// Auth
+document.getElementById("signupBtn").addEventListener("click", async ()=>{
+  const email = document.getElementById("authEmail").value;
+  const pass = document.getElementById("authPassword").value;
+  let chatId = document.getElementById("authUsername").value.trim();
+  if(!chatId || chatId.length<4) return alert("Chat ID min 4 characters");
+  
+  // Check whitelist
+  const whitelistRef = doc(db,"whitelist","emails");
+  const wlSnap = await getDoc(whitelistRef);
+  const whitelist = wlSnap.exists()? wlSnap.data().list : [];
+  if(!whitelist.includes(email.toLowerCase()) && email.toLowerCase()!=="paygeda@gmail.com") return alert("Email not whitelisted");
 
-  if(!chatId || chatId.length <4){ alert('Chat ID must be at least 4 chars'); return; }
+  const usersRef = collection(db,"users");
+  const q = query(usersRef, where("chatId","==",chatId));
+  const querySnap = await getDocs(q);
+  if(!querySnap.empty) return alert("Chat ID exists");
 
-  if(!await isEmailWhitelisted(email)){ alert('Email not whitelisted'); return; }
-
-  const usersRef = collection(db,'users');
-  const q = query(usersRef, where('chatId','==',chatId));
-  const snap = await getDocs(q);
-  if(!snap.empty){ alert('Chat ID already exists'); return; }
-
-  const userCredential = await createUserWithEmailAndPassword(auth,email,pass);
-  await setDoc(doc(db,'users',userCredential.user.uid),{ chatId, email, stars:0 });
+  const userCred = await createUserWithEmailAndPassword(auth,email,pass);
+  await setDoc(doc(db,"users",userCred.user.uid),{chatId,email,stars:0});
 });
 
-// Sign in
-document.getElementById('signinBtn').addEventListener('click', async()=>{
-  const email = document.getElementById('authEmail').value;
-  const pass = document.getElementById('authPassword').value;
+document.getElementById("signinBtn").addEventListener("click", async ()=>{
+  const email = document.getElementById("authEmail").value;
+  const pass = document.getElementById("authPassword").value;
   await signInWithEmailAndPassword(auth,email,pass);
 });
 
-// Sign out
-document.getElementById('signoutBtn').addEventListener('click', async()=>{ await signOut(auth); });
+document.getElementById("signoutBtn").addEventListener("click", async ()=>{
+  await signOut(auth);
+});
 
-// Auth state change
 onAuthStateChanged(auth, async user=>{
-  const profileName = document.getElementById('profileName');
-  const uidEl = document.getElementById('uid');
-  const sendArea = document.getElementById('sendArea');
-  const adminControls = document.getElementById('adminControls');
+  const profileName = document.getElementById("profileName");
+  const uidEl = document.getElementById("uid");
+  const adminPanel = document.getElementById("adminPanel");
 
   if(user){
-    const userDoc = await getDoc(doc(db,'users',user.uid));
-    const chatId = userDoc.exists()? userDoc.data().chatId: getRandomGuestName();
-    const stars = userDoc.exists()? userDoc.data().stars:0;
+    const userDoc = await getDoc(doc(db,"users",user.uid));
+    const chatId = userDoc.exists()? userDoc.data().chatId : randomGuest();
+    let stars = userDoc.exists()? userDoc.data().stars : 0;
     currentUser = {uid:user.uid, chatId};
 
     profileName.textContent = chatId;
     uidEl.textContent = user.uid;
-    document.getElementById('authBox').style.display='none';
-    document.getElementById('signoutBtn').style.display='block';
-    sendArea.style.display='flex';
+    document.getElementById("authBox").style.display="none";
+    document.getElementById("signoutBtn").style.display="block";
+    document.getElementById("messageInput").parentElement.style.display="flex";
 
-    if(user.email==='paygeda@gmail.com'){ adminControls.style.display='flex'; }
+    // Admin panel visible
+    adminPanel.style.display = (user.email==="paygeda@gmail.com")? "flex":"none";
 
-    document.getElementById('starCount').textContent = stars;
+    document.getElementById("starCount").textContent = stars;
 
-    // Messages listener
-    const messagesRef = collection(db,'messages');
-    const messagesQuery = query(messagesRef, orderBy('timestamp','asc'));
-    onSnapshot(messagesQuery, snap=>{
-      const messagesEl = document.getElementById('messages');
-      messagesEl.innerHTML='';
+    const messagesRef = collection(db,"messages");
+    const messagesQuery = query(messagesRef, orderBy("timestamp","asc"));
+    onSnapshot(messagesQuery,snap=>{
+      const messagesEl = document.getElementById("messages");
+      messagesEl.innerHTML="";
       snap.forEach(doc=>{
         const data = doc.data();
-        const msgEl = document.createElement('div');
-        msgEl.classList.add('msg');
-        if(data.chatId===currentUser.chatId) msgEl.classList.add('me');
+        const msgEl = document.createElement("div");
+        msgEl.classList.add("msg");
+        if(data.chatId===currentUser.chatId) msgEl.classList.add("me");
         const color = getColorForUser(data.chatId);
         msgEl.innerHTML=`<div class="meta" style="color:${color}">${data.chatId}:</div><div class="content">${data.text}</div>`;
         messagesEl.appendChild(msgEl);
@@ -212,55 +207,63 @@ onAuthStateChanged(auth, async user=>{
       messagesEl.scrollTop = messagesEl.scrollHeight;
     });
 
-  }else{
-    currentUser=null;
-    profileName.textContent='Guest';
-    uidEl.textContent='—';
-    document.getElementById('authBox').style.display='block';
-    document.getElementById('signoutBtn').style.display='none';
-    sendArea.style.display='none';
-    adminControls.style.display='none';
+  } else {
+    currentUser = null;
+    profileName.textContent = randomGuest();
+    uidEl.textContent = "—";
+    document.getElementById("authBox").style.display="block";
+    document.getElementById("signoutBtn").style.display="none";
+    document.getElementById("messageInput").parentElement.style.display="none";
+    adminPanel.style.display="none";
   }
 });
 
-// Send messages
-document.getElementById('sendBtn').addEventListener('click', async()=>{
-  const text = document.getElementById('messageInput').value.trim();
+// Messages
+document.getElementById("sendBtn").addEventListener("click", async ()=>{
+  const text = document.getElementById("messageInput").value.trim();
   if(!text||!currentUser) return;
-  await addDoc(collection(db,'messages'),{ chatId:currentUser.chatId, text, timestamp:serverTimestamp() });
-  document.getElementById('messageInput').value='';
+  await addDoc(collection(db,"messages"),{
+    chatId: currentUser.chatId,
+    text,
+    timestamp: serverTimestamp()
+  });
+  document.getElementById("messageInput").value="";
 });
 
-// Stars system
-let lastStars = 0;
+// Stars milestone
 async function giveStar(){
   if(!currentUser) return;
-  const userRef = doc(db,'users',currentUser.uid);
+  const userRef = doc(db,"users",currentUser.uid);
   const userSnap = await getDoc(userRef);
-  let stars = userSnap.exists()? userSnap.data().stars:0;
+  let stars = userSnap.exists()? userSnap.data().stars : 0;
   stars += 1;
   await updateDoc(userRef,{stars});
+  document.getElementById("starCount").textContent = stars;
 
-  const milestones = [50,100,200,500,1000];
-  if(milestones.includes(stars)){
-    document.getElementById('starText').innerText=`Congrats! You reached ${stars} ⭐`;
-    document.getElementById('starPopup').style.display='block';
-    setTimeout(()=>{ document.getElementById('starPopup').style.display='none'; },3000);
+  const milestones=[50,100,200,500];
+  if(milestones.includes(stars)||stars>500) {
+    const starPopup=document.getElementById("starPopup");
+    const starText=document.getElementById("starText");
+    starText.innerHTML=`🎉 Milestone! You now have ${stars} stars!`;
+    starPopup.style.display="block";
+    setTimeout(()=>{starPopup.style.display="none";},3000);
   }
-  document.getElementById('starCount').textContent=stars;
 }
 setInterval(giveStar,10000);
 
-// Close star popup
-document.getElementById('closeStar').addEventListener('click',()=>{document.getElementById('starPopup').style.display='none';});
-
-// Admin add whitelist
-document.getElementById('addWhitelist').addEventListener('click', async()=>{
-  const email = prompt('Enter email to whitelist:');
-  if(!email) return;
-  await setDoc(doc(db,'whitelist',email),{allowed:true});
-  alert(email+' added to whitelist');
+// Admin whitelist save
+document.getElementById("saveWhitelist").addEventListener("click",async ()=>{
+  const text = document.getElementById("whitelistInput").value;
+  const emails = text.split("\n").map(e=>e.trim().toLowerCase()).filter(Boolean);
+  await setDoc(doc(db,"whitelist","emails"),{list:emails});
+  alert("Whitelist updated!");
 });
 </script>
+
+<!-- Star popup -->
+<div class="star-popup" id="starPopup">
+  <div id="starText"></div>
+  <div style="text-align:right;margin-top:6px"><button id="closeStar" class="ghost" onclick="document.getElementById('starPopup').style.display='none'">Close</button></div>
+</div>
 </body>
 </html>
