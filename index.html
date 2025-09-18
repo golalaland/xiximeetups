@@ -27,7 +27,7 @@ html,body{height:100%;margin:0;font-family:'XiXi',Inter,system-ui,Segoe UI,Robot
 #videoContainer iframe{width:100%;height:100%;border:0;border-radius:12px;}
 #messages{flex:1;overflow:auto;padding:8px;display:flex;flex-direction:column;gap:6px;border-radius:8px;background:#000;margin-bottom:6px;}
 .msg{padding:6px 8px;border-radius:10px;background:var(--glass);max-width:85%;position:relative;display:flex;gap:6px;align-items:center;opacity:0;animation:fadeInUp 0.25s forwards; justify-content:flex-start;}
-.msg.me { background: rgba(223,244,31,0.08);}
+.msg.me { background: rgba(223,244,31,0.08); }
 .msg .meta{font-weight:700;font-size:14px;}  
 .msg .content{font-size:12px;color:#fff;white-space:pre-wrap;}  
 .send-area{
@@ -125,7 +125,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
 import { getAuth, setPersistence, browserLocalPersistence, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { getFirestore, doc, setDoc, getDoc, updateDoc, collection, query, where, getDocs, addDoc, orderBy, serverTimestamp, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-// Firebase Config — new chatroom
+// ====== FIREBASE CONFIG ======
 const firebaseConfig = {
   apiKey: "AIzaSyDbKz4ef_eUDlCukjmnK38sOwueYuzqoao",
   authDomain: "metaverse-1010.firebaseapp.com",
@@ -140,10 +140,27 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
+// ====== TEST WHITELIST + MASTER CODE ======
+const TEST_MASTER_CODE = "12345";  // This is your current access code
+const testWhitelist = ["test1@example.com","test2@example.com"]; // emails allowed
+
+async function populateWhitelist() {
+  const whitelistRef = collection(db, "whitelist");
+  for (let email of testWhitelist) {
+    const docRef = doc(db, "whitelist", email);
+    const snap = await getDoc(docRef);
+    if (!snap.exists()) {
+      await setDoc(docRef, { allowed: true });
+    }
+  }
+}
+populateWhitelist();
+
+// ====== AUTO LOGIN PERSISTENCE ======
+setPersistence(auth, browserLocalPersistence).catch(err => console.error("Persistence error:", err));
 
 let currentUser = null;
 const userColors = {}; 
-
 function getColorForUser(chatId){
   if(!userColors[chatId]){
     const colors = ["#FF6B6B","#6BCB77","#4D96FF","#FFD93D","#B980F0","#FF9F1C"];
@@ -152,71 +169,52 @@ function getColorForUser(chatId){
   return userColors[chatId];
 }
 
-// ✅ Auto-login persistence
-setPersistence(auth, browserLocalPersistence).catch(err => console.error("Persistence error:", err));
-
-// Fetch current master code from Firestore
-async function getMasterCode() {
-  const codeSnap = await getDoc(doc(db, "accessCodes", "current"));
-  return codeSnap.exists() ? codeSnap.data().code : null;
-}
-
-// Signup
+// ====== SIGNUP ======
 document.getElementById("signupBtn").addEventListener("click", async () => {
-  const chatId = document.getElementById("authUsername").value.trim();
   const email = document.getElementById("authEmail").value.trim();
-  const phone = document.getElementById("authPhone").value.trim();
   const pass = document.getElementById("authPassword").value.trim();
+  const chatId = document.getElementById("authUsername").value.trim();
+  const phone = document.getElementById("authPhone").value.trim();
 
   if (!chatId || chatId.length < 4) return alert("Chat ID must be at least 4 characters.");
-  if (!email) return alert("Email required.");
-  if (!phone) return alert("Phone number required.");
-  if (!pass) return alert("Access code required.");
 
-  // 1️⃣ Check whitelist
-  const wlDoc = await getDoc(doc(db, "whitelist", email));
-  if (!wlDoc.exists()) return alert("Email not allowed to sign up.");
+  // check access code
+  if (pass !== TEST_MASTER_CODE) return alert("Invalid access code.");
 
-  // 2️⃣ Check access code
-  const MASTER_ACCESS_CODE = await getMasterCode();
-  if (pass !== MASTER_ACCESS_CODE) return alert("Invalid access code.");
+  // check whitelist
+  const wlSnap = await getDoc(doc(db, "whitelist", email));
+  if (!wlSnap.exists() || !wlSnap.data().allowed) return alert("Email not allowed to sign up.");
 
-  // 3️⃣ Ensure unique chatId
+  // check chatId uniqueness
   const usersRef = collection(db, "users");
   const q = query(usersRef, where("chatId", "==", chatId));
   const querySnap = await getDocs(q);
   if (!querySnap.empty) return alert("Chat ID already exists.");
 
-  // 4️⃣ Create user
+  // create user
   const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
-  await setDoc(doc(db, "users", userCredential.user.uid), {
-    chatId, email, phone, stars: 0
-  });
-
-  alert("Signup successful! You can now login.");
+  await setDoc(doc(db, "users", userCredential.user.uid), { chatId, email, phone, stars: 0 });
+  alert("Signup successful! Use same email + master code to login.");
 });
 
-// Signin
+// ====== SIGNIN ======
 document.getElementById("signinBtn").addEventListener("click", async () => {
   const email = document.getElementById("authEmail").value.trim();
   const pass = document.getElementById("authPassword").value.trim();
 
-  const wlDoc = await getDoc(doc(db, "whitelist", email));
-  if (!wlDoc.exists()) return alert("Email not allowed to sign in.");
-
   try {
-    await signInWithEmailAndPassword(auth, email, pass);
-  } catch (err) {
-    alert("Invalid access code or email.");
+    const userCredential = await signInWithEmailAndPassword(auth, email, pass);
+  } catch(e) {
+    alert("Login failed: "+e.message);
   }
 });
 
-// Signout
+// ====== SIGNOUT ======
 document.getElementById("signoutBtn").addEventListener("click", async () => {
   await signOut(auth);
 });
 
-// Auth state
+// ====== AUTH STATE ======
 onAuthStateChanged(auth, async user => {
   const profileName = document.getElementById("profileName");
   const uidEl = document.getElementById("uid");
@@ -256,7 +254,7 @@ onAuthStateChanged(auth, async user => {
   }
 });
 
-// Messages
+// ====== MESSAGES ======
 document.getElementById("sendBtn").addEventListener("click", async () => {
   const text = document.getElementById("messageInput").value.trim();
   if (!text || !currentUser) return;
@@ -268,7 +266,7 @@ document.getElementById("sendBtn").addEventListener("click", async () => {
   document.getElementById("messageInput").value = "";
 });
 
-// Stars
+// ====== STARS ======
 const starCountEl = document.getElementById("starCount");
 const starPopup = document.getElementById("starPopup");
 const starText = document.getElementById("starText");
@@ -287,6 +285,7 @@ async function giveStar() {
   setTimeout(() => { starPopup.style.display = "none"; }, 3000);
 }
 setInterval(giveStar, 10000);
+
 </script>
 </body>
 </html>
