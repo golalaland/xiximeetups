@@ -1,416 +1,164 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
-<title>Xixi — Money Talk 💸</title>
-<link rel="icon" href="data:," />
-<style>
-:root{
-  --bg:#000;
-  --card:#111;
-  --muted:#aaa;
-  --accent:#FF1493; /* deep pink */
-  --glass: rgba(255,255,255,0.03);
-}
-html,body{height:100%;margin:0;font-family:'XiXi',Inter,system-ui,Segoe UI,Roboto,"Helvetica Neue",Arial;color:#fff;background:var(--bg);}
-.app{display:flex;flex-direction:column;height:100%;gap:12px;padding:12px;box-sizing:border-box;}
-.brand{font-weight:700;font-size:28px;color:var(--accent);text-align:center;}
-.room-desc{font-size:12px;color:var(--muted);text-align:center;margin-bottom:12px;}
-#authBox{margin-bottom:12px;}
-#authBox .controls-row{display:flex;gap:6px;margin-top:6px;align-items:center;}
-.google-btn{
-  display:inline-flex;align-items:center;gap:8px;padding:8px 12px;border-radius:8px;border:0;background:var(--accent);color:#000;cursor:pointer;font-weight:700;
-}
-.google-ghost{background:transparent;border:1px solid rgba(255,255,255,0.05);color:var(--muted);padding:6px;border-radius:8px;}
-#center{flex:1;display:flex;flex-direction:column;gap:6px;}
-#videoContainer{width:100%;aspect-ratio:16/9;background:#111;border-radius:12px;overflow:hidden;position:sticky;top:0;z-index:5;}
-#videoContainer iframe{width:100%;height:100%;border:0;border-radius:12px;}
-#messages{flex:1;overflow:auto;padding:8px;display:flex;flex-direction:column;gap:6px;border-radius:8px;background:#000;margin-bottom:6px;}
-.msg{padding:6px 8px;border-radius:10px;background:var(--glass);max-width:85%;position:relative;display:flex;gap:6px;align-items:center;opacity:0;animation:fadeInUp 0.25s forwards; justify-content:flex-start;}
-.msg.me {background: rgba(255,20,147,0.08);}
-.msg .meta{font-weight:700;font-size:14px;}  
-.msg .content{font-size:12px;color:#fff;white-space:pre-wrap;}  
-.send-area{display:flex;align-items:center;gap:6px;background:var(--card);padding:6px 12px;position:sticky;bottom:0;z-index:10;border-top:1px solid rgba(255,255,255,0.05);border-radius:20px;}
-.send-area input{flex:1;padding:10px 14px;border-radius:999px;border:1px solid rgba(255,255,255,0.1);background:#111;color:#fff;font-size:14px;outline:none;transition:0.2s all;}
-.send-area input::placeholder{color:var(--muted);}
-.send-area input:focus{border-color:var(--accent);box-shadow:0 0 10px rgba(255,20,147,0.4);}
-.send-area button.btn{padding:8px 14px;border-radius:999px;background:var(--accent);color:#000;cursor:pointer;font-weight:600;transition:0.2s all;}
-.send-area button.btn:hover{filter:brightness(1.1);}
-.profile{display:flex;flex-direction:column;gap:4px;margin-top:12px;}
-.profile .small{font-size:12px;color:var(--muted);}
-.star-popup{position:fixed;left:50%;top:18%;transform:translateX(-50%);background:var(--card);padding:6px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.05);display:none;z-index:1000;color:var(--accent);font-size:12px;white-space:nowrap;text-align:center;max-width:90%;}
-.redeem-btn{background:var(--accent);color:#000;font-size:11px;padding:4px 8px;border-radius:6px;cursor:pointer;font-weight:600;margin-left:auto;text-decoration:none;}
-.admin-panel{display:none;margin-top:8px;padding:8px;background:#111;border-radius:8px;border:1px solid rgba(255,20,147,0.12);}
-.admin-panel button{margin-right:8px;padding:6px 8px;border-radius:6px;border:none;background:var(--accent);color:#000;cursor:pointer;}
-@keyframes fadeInUp{to{opacity:1;transform:translateY(0);}}
-@media (max-width:600px){.send-area{padding:6px 8px;}.send-area button.btn{padding:6px 12px;font-size:13px;}.send-area input{font-size:13px;padding:8px 12px;}.brand{font-size:24px;}.room-desc{font-size:11px;}}
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>XiXi Chatroom</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: black;
+      color: white;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+    }
+    header {
+      background: deeppink;
+      padding: 10px;
+      text-align: center;
+      font-size: 24px;
+      font-weight: bold;
+      color: white;
+    }
+    #chat-container {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      padding: 10px;
+      overflow-y: auto;
+    }
+    #message-input {
+      display: flex;
+      padding: 10px;
+      border-top: 1px solid #333;
+    }
+    #message-input input {
+      flex: 1;
+      padding: 10px;
+      border: none;
+      border-radius: 5px;
+      margin-right: 10px;
+    }
+    #message-input button {
+      background: deeppink;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 5px;
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    #auth-section {
+      text-align: center;
+      padding: 20px;
+    }
+    .hidden {
+      display: none;
+    }
+    .chat-message {
+      margin: 5px 0;
+      padding: 8px;
+      border-radius: 5px;
+    }
+    .me { background: deeppink; color: white; align-self: flex-end; }
+    .other { background: #222; color: white; align-self: flex-start; }
+  </style>
 </head>
 <body>
+  <header>XiXi Chat 💋</header>
 
-<div class="app">
-  <div class="brand">乂丨乂丨</div>
-  <div class="room-desc">Money Talk 💸 — Chat. Own your vibe.</div>
-
-  <!-- Auth: Google Sign-In replaces old email/password box -->
-  <div id="authBox">
-    <div style="display:flex;align-items:center;gap:8px;">
-      <button id="googleSignInBtn" class="google-btn">Sign in with Google</button>
-      <button id="signoutBtn" class="google-ghost" style="display:none">Sign out</button>
-    </div>
-    <div style="margin-top:8px;" id="authStatus">Not signed in</div>
+  <div id="auth-section">
+    <button id="googleLogin">Sign in with Google</button>
   </div>
 
-  <!-- Admin panel (visible only for admin account) -->
-  <div class="admin-panel" id="adminPanel">
-    <strong>Admin</strong>
-    <div style="margin-top:8px;">
-      <button id="adminWhitelistBtn">Whitelist Email</button>
-      <button id="adminListUsersBtn">Refresh Users List (console)</button>
-    </div>
+  <div id="chat-container" class="hidden"></div>
+
+  <div id="message-input" class="hidden">
+    <input type="text" id="messageBox" placeholder="Type your message...">
+    <button id="sendBtn">Send</button>
   </div>
 
-  <!-- Center: video + chat -->
-  <div id="center">
-    <div id="videoContainer">
-      <iframe src="https://www.youtube.com/embed/dQw4w9WgXcQ" title="Video" allowfullscreen></iframe>
-    </div>
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js"></script>
 
-    <div id="messages"></div>
-
-    <div class="send-area" id="sendArea" style="display:none;">
-      <input type="text" id="messageInput" placeholder="Type your message..." />
-      <button id="sendBtn" class="btn">Send</button>
-    </div>
-  </div>
-
-  <!-- Profile -->
-  <div class="profile">
-    <div style="display:flex;align-items:center;justify-content:space-between;">
-      <div>
-        <strong id="profileName">GUEST 0000</strong>
-        <div class="small">Stars: <span id="starCount">0</span> ⭐</div>
-        <div class="small">UID: <span id="uid">—</span></div>
-      </div>
-      <a href="https://xixi.live" target="_blank" class="redeem-btn">Redeem</a>
-    </div>
-  </div>
-</div>
-
-<!-- Star popup -->
-<div class="star-popup" id="starPopup">
-  <div id="starText">You've just earned +1 star! ⭐</div>
-  <div style="text-align:right;margin-top:6px"><button id="closeStar" class="google-ghost">Close</button></div>
-</div>
-
-<script type="module">
-/*
-  XiXi Chatroom — Google Sign-In version
-  - Make sure Google provider is enabled in Firebase Console > Authentication
-  - Make sure your domain(s) (GitHub/Shopify) are added to Authorized domains
-*/
-
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import {
-  getAuth,
-  setPersistence,
-  browserLocalPersistence,
-  GoogleAuthProvider,
-  signInWithPopup,
-  signOut,
-  onAuthStateChanged
-} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import {
-  getFirestore,
-  collection,
-  addDoc,
-  doc,
-  setDoc,
-  getDoc,
-  getDocs,
-  query,
-  where,
-  orderBy,
-  serverTimestamp,
-  onSnapshot,
-  updateDoc
-} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-
-// ---------- Firebase config (metaverse-1010) ----------
-const firebaseConfig = {
-  apiKey: "AIzaSyDbKz4ef_eUDlCukjmnK38sOwueYuzqoao",
-  authDomain: "metaverse-1010.firebaseapp.com",
-  projectId: "metaverse-1010",
-  storageBucket: "metaverse-1010.appspot.com",
-  messagingSenderId: "1044064238233",
-  appId: "1:1044064238233:web:2fbdfb811cb0a3ba349608",
-  measurementId: "G-S77BMC266C"
-};
-
-// init
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
-const provider = new GoogleAuthProvider();
-
-// UI elements
-const googleBtn = document.getElementById("googleSignInBtn");
-const signoutBtn = document.getElementById("signoutBtn");
-const authStatus = document.getElementById("authStatus");
-const profileNameEl = document.getElementById("profileName");
-const uidEl = document.getElementById("uid");
-const sendArea = document.getElementById("sendArea");
-const messagesEl = document.getElementById("messages");
-const starCountEl = document.getElementById("starCount");
-const adminPanel = document.getElementById("adminPanel");
-
-let currentUser = null;
-let userColors = {};
-
-// utilities
-function randomGuest() {
-  return "GUEST " + Math.floor(1000 + Math.random() * 9000);
-}
-function getColorForUser(chatId) {
-  if (!userColors[chatId]) {
-    const colors = ["#FF6B6B", "#FF1493", "#FF69B4", "#FF85C0", "#FF00FF"];
-    userColors[chatId] = colors[Math.floor(Math.random() * colors.length)];
-  }
-  return userColors[chatId];
-}
-async function isWhitelisted(email) {
-  if (!email) return false;
-  const wlCol = collection(db, "whitelist");
-  const q = query(wlCol, where("email", "==", email.toLowerCase()));
-  const snap = await getDocs(q);
-  return !snap.empty;
-}
-
-// persist auth in same browser
-setPersistence(auth, browserLocalPersistence).catch(console.error);
-
-// ---------- Google login flow ----------
-googleBtn.addEventListener("click", async () => {
-  try {
-    const result = await signInWithPopup(auth, provider);
-    // onAuthStateChanged will run next and finish setup
-  } catch (err) {
-    console.error("Google sign-in failed:", err);
-    alert("Google sign-in failed: " + (err.message || err));
-  }
-});
-
-signoutBtn.addEventListener("click", async () => {
-  try {
-    await signOut(auth);
-  } catch (err) {
-    console.error("Sign out error:", err);
-  }
-});
-
-// ---------- messages subscription (always on) ----------
-const messagesRef = collection(db, "messages");
-const messagesQuery = query(messagesRef, orderBy("timestamp", "asc"));
-onSnapshot(messagesQuery, snap => {
-  messagesEl.innerHTML = "";
-  snap.forEach(d => {
-    const data = d.data();
-    const msgEl = document.createElement("div");
-    msgEl.classList.add("msg");
-    // mark user's own messages with .me by comparing chatId when available
-    if (currentUser && data.chatId === currentUser.chatId) msgEl.classList.add("me");
-    const color = getColorForUser(data.chatId || data.user || "Anon");
-    msgEl.innerHTML = `<div class="meta" style="color:${color}">${data.chatId || data.user || "Anon"}:</div><div class="content">${data.text}</div>`;
-    messagesEl.appendChild(msgEl);
-  });
-  messagesEl.scrollTop = messagesEl.scrollHeight;
-});
-
-// ---------- helper: ensure user doc exists and chatId assigned ----------
-async function ensureUserDoc(firebaseUser) {
-  if (!firebaseUser) return null;
-  try {
-    const uDocRef = doc(db, "users", firebaseUser.uid);
-    const uSnap = await getDoc(uDocRef);
-    if (uSnap.exists()) {
-      return uSnap.data();
-    }
-
-    // user doc missing -> check whitelist
-    const email = firebaseUser.email ? firebaseUser.email.toLowerCase() : "";
-    const allowed = (email === "paygeda@gmail.com") || await isWhitelisted(email);
-    if (!allowed) {
-      // not whitelisted -> sign out and alert
-      alert("Your email is not whitelisted. Contact admin.");
-      await signOut(auth);
-      return null;
-    }
-
-    // prompt for desired chatId
-    let chosen = "";
-    while (!chosen) {
-      chosen = prompt("Choose your Chat ID (min 4 characters):", (firebaseUser.displayName || "User").replace(/\s+/g, "").slice(0,12));
-      if (chosen === null) { // user cancelled
-        await signOut(auth);
-        return null;
-      }
-      chosen = chosen.trim();
-      if (chosen.length < 4) {
-        alert("Chat ID must be at least 4 characters.");
-        chosen = "";
-        continue;
-      }
-      // check uniqueness
-      const uCol = collection(db, "users");
-      const q = query(uCol, where("chatId", "==", chosen));
-      const qSnap = await getDocs(q);
-      if (!qSnap.empty) {
-        alert("Chat ID already taken — choose another.");
-        chosen = "";
-      }
-    }
-
-    // create user doc
-    const userData = {
-      chatId: chosen,
-      email: firebaseUser.email,
-      stars: 0,
-      isAdmin: (firebaseUser.email && firebaseUser.email.toLowerCase() === "paygeda@gmail.com")
-    };
-    await setDoc(uDocRef, userData);
-    return userData;
-  } catch (err) {
-    console.error("ensureUserDoc error:", err);
-    alert("Error while creating user record: " + (err.message || err));
-    try { await signOut(auth); } catch (e) {}
-    return null;
-  }
-}
-
-// ---------- auth state handler ----------
-onAuthStateChanged(auth, async firebaseUser => {
-  if (firebaseUser) {
-    authStatus.textContent = `Signed in as ${firebaseUser.displayName || firebaseUser.email}`;
-    signoutBtn.style.display = "inline-block";
-    googleBtn.style.display = "none";
-
-    // Ensure user doc exists and chatId assigned
-    const userData = await ensureUserDoc(firebaseUser);
-    if (!userData) {
-      // already signed out inside ensureUserDoc if not allowed
-      // reset UI to signed out
-      authStatus.textContent = "Not signed in";
-      signoutBtn.style.display = "none";
-      googleBtn.style.display = "inline-block";
-      profileNameEl.textContent = randomGuest();
-      uidEl.textContent = "—";
-      sendArea.style.display = "none";
-      adminPanel.style.display = "none";
-      return;
-    }
-
-    currentUser = {
-      uid: firebaseUser.uid,
-      chatId: userData.chatId,
-      isAdmin: !!userData.isAdmin
+  <script>
+    // ✅ Your Firebase Config
+    const firebaseConfig = {
+      apiKey: "AIzaSyDbKz4ef_eUDlCukjmnK38sOwueYuzqoao",
+      authDomain: "metaverse-1010.firebaseapp.com",
+      projectId: "metaverse-1010",
+      storageBucket: "metaverse-1010.firebasestorage.app",
+      messagingSenderId: "1044064238233",
+      appId: "1:1044064238233:web:2fbdfb811cb0a3ba349608",
+      measurementId: "G-S77BMC266C"
     };
 
-    // update UI
-    profileNameEl.textContent = currentUser.chatId;
-    uidEl.textContent = firebaseUser.uid;
-    sendArea.style.display = "flex";
-    starCountEl.textContent = userData.stars || 0;
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
 
-    // admin panel visibility
-    adminPanel.style.display = currentUser.isAdmin ? "block" : "none";
+    const googleBtn = document.getElementById("googleLogin");
+    const chatContainer = document.getElementById("chat-container");
+    const msgInput = document.getElementById("messageBox");
+    const sendBtn = document.getElementById("sendBtn");
+    const msgSection = document.getElementById("message-input");
+    const authSection = document.getElementById("auth-section");
 
-  } else {
-    // signed out
-    authStatus.textContent = "Not signed in";
-    googleBtn.style.display = "inline-block";
-    signoutBtn.style.display = "none";
-    profileNameEl.textContent = randomGuest();
-    uidEl.textContent = "—";
-    sendArea.style.display = "none";
-    adminPanel.style.display = "none";
-    currentUser = null;
-  }
-});
-
-// ---------- send message ----------
-document.getElementById("sendBtn").addEventListener("click", async () => {
-  try {
-    if (!currentUser) { alert("Sign in first"); return; }
-    const text = document.getElementById("messageInput").value.trim();
-    if (!text) return;
-    await addDoc(collection(db, "messages"), {
-      chatId: currentUser.chatId,
-      text,
-      timestamp: serverTimestamp()
+    // ✅ Google Sign-in
+    googleBtn.addEventListener("click", async () => {
+      const provider = new firebase.auth.GoogleAuthProvider();
+      try {
+        await auth.signInWithPopup(provider);
+      } catch (err) {
+        alert("Google login failed: " + err.message);
+      }
     });
-    document.getElementById("messageInput").value = "";
-  } catch (err) {
-    console.error("Send message error:", err);
-    alert("Failed to send message: " + (err.message || err));
-  }
-});
 
-// ---------- auto-star / milestone logic (same behavior as before) ----------
-const milestones = [50, 100, 200, 500];
-async function giveStarAutomatically() {
-  if (!currentUser) return;
-  try {
-    const userRef = doc(db, "users", currentUser.uid);
-    const uSnap = await getDoc(userRef);
-    if (!uSnap.exists()) return;
-    let stars = uSnap.data().stars || 0;
-    stars += 1;
-    await updateDoc(userRef, { stars });
-    starCountEl.textContent = stars;
-    // milestone popup
-    if (milestones.includes(stars) || (stars > 500 && stars % 500 === 0)) {
-      document.getElementById("starText").innerHTML = `🎉 Milestone! ${stars} ⭐`;
-      document.getElementById("starPopup").style.display = "block";
-      setTimeout(() => { document.getElementById("starPopup").style.display = "none"; }, 3500);
+    // ✅ Show chat after login
+    auth.onAuthStateChanged(user => {
+      if (user) {
+        authSection.classList.add("hidden");
+        chatContainer.classList.remove("hidden");
+        msgSection.classList.remove("hidden");
+        loadMessages();
+      }
+    });
+
+    // ✅ Send message
+    sendBtn.addEventListener("click", async () => {
+      const user = auth.currentUser;
+      if (!user || msgInput.value.trim() === "") return;
+
+      await db.collection("messages").add({
+        text: msgInput.value,
+        uid: user.uid,
+        name: user.displayName || "Guest",
+        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+      });
+
+      msgInput.value = "";
+    });
+
+    // ✅ Load messages
+    function loadMessages() {
+      db.collection("messages").orderBy("timestamp")
+        .onSnapshot(snapshot => {
+          chatContainer.innerHTML = "";
+          snapshot.forEach(doc => {
+            const msg = doc.data();
+            const div = document.createElement("div");
+            div.classList.add("chat-message");
+            div.classList.add(msg.uid === auth.currentUser.uid ? "me" : "other");
+            div.textContent = `${msg.name}: ${msg.text}`;
+            chatContainer.appendChild(div);
+          });
+          chatContainer.scrollTop = chatContainer.scrollHeight;
+        });
     }
-  } catch (err) {
-    console.error("giveStarAutomatically error:", err);
-  }
-}
-setInterval(giveStarAutomatically, 10000); // demo auto-star every 10s
-
-// ---------- admin functions ----------
-document.getElementById("adminWhitelistBtn").addEventListener("click", async () => {
-  if (!currentUser || !currentUser.isAdmin) return alert("Admin only");
-  const email = prompt("Email to whitelist (one):").trim().toLowerCase();
-  if (!email) return;
-  try {
-    await addDoc(collection(db, "whitelist"), { email });
-    alert(email + " whitelisted.");
-  } catch (err) {
-    console.error("Whitelist add error:", err);
-    alert("Failed to whitelist: " + (err.message || err));
-  }
-});
-
-document.getElementById("adminListUsersBtn").addEventListener("click", async () => {
-  if (!currentUser || !currentUser.isAdmin) return alert("Admin only");
-  try {
-    const usersSnap = await getDocs(collection(db, "users"));
-    console.log("Users list:");
-    usersSnap.forEach(d => console.log(d.id, d.data()));
-    alert("Users printed to console.");
-  } catch (err) {
-    console.error(err);
-    alert("Failed to list users: " + (err.message || err));
-  }
-});
-
-// close star popup
-document.getElementById("closeStar").addEventListener("click", () => {
-  document.getElementById("starPopup").style.display = "none";
-});
-</script>
+  </script>
 </body>
 </html>
