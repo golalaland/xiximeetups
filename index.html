@@ -8,8 +8,8 @@
     body {margin:0;font-family:Arial,sans-serif;background:black;color:white;display:flex;flex-direction:column;height:100vh;}
     #authBox,#chatBox{margin:auto;text-align:center;}
     #chatBox{display:none;flex-direction:column;width:100%;height:100%;}
-    #messages{flex:1;overflow-y:auto;padding:10px;}
-    .msg{margin:5px 0;padding:8px 12px;border-radius:10px;max-width:70%;text-align:left;}
+    #messages{flex:1;overflow-y:auto;padding:10px;scroll-behavior:smooth;}
+    .msg{margin:5px 0;padding:8px 12px;border-radius:10px;max-width:70%;text-align:left;opacity:0;animation:fadeIn 0.3s forwards;}
     .msg.me{background:rgba(223,244,31,0.08);margin-left:0;}
     .msg.other{background:rgba(255,255,255,0.1);margin-right:0;}
     .send-area{display:flex;padding:10px;border-top:1px solid #333;position:sticky;bottom:env(safe-area-inset-bottom);}
@@ -17,6 +17,7 @@
     .send-area button{padding:10px 20px;border:none;border-radius:20px;background:#dfF41F;color:black;cursor:pointer;}
     #starCount.bump{animation:bump 0.3s;}
     @keyframes bump{0%{transform:scale(1);}50%{transform:scale(1.3);}100%{transform:scale(1);}}
+    @keyframes fadeIn{to{opacity:1;}}
   </style>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
@@ -25,7 +26,7 @@
 <body>
   <div id="authBox">
     <h2>Sign In</h2>
-    <input id="authUsername" placeholder="Chat ID"><br><br>
+    <input id="authUsername" placeholder="Chat ID" autofocus><br><br>
     <button id="signinBtn">Sign In</button>
     <button id="signupBtn">Sign Up</button><br><br>
     <button id="googleBtn">Sign In with Google</button>
@@ -60,8 +61,6 @@
   const messagesDiv=document.getElementById("messages");
   const starCountEl=document.getElementById("starCount");
 
-  document.getElementById("authUsername").focus();
-
   // Auth events
   signinBtn.onclick=()=>{
     const email=document.getElementById("authUsername").value+"@xixi.com";
@@ -81,6 +80,11 @@
   };
   logoutBtn.onclick=()=>{auth.signOut();};
 
+  // Enter key for auth
+  document.getElementById("authUsername").addEventListener("keypress",e=>{
+    if(e.key==="Enter") signinBtn.click();
+  });
+
   auth.onAuthStateChanged(user=>{
     if(user){
       authBox.style.display="none";
@@ -88,6 +92,9 @@
       if(user.email.includes("admin")) document.getElementById("adminPanel").style.display="block";
       addSystemMessage(`${user.displayName||user.email} joined the chat.`);
     }else{
+      if(chatBox.style.display==="flex"){
+        addSystemMessage("User left the chat.");
+      }
       authBox.style.display="block";
       chatBox.style.display="none";
     }
@@ -114,7 +121,10 @@
     const msg={text,uid:auth.currentUser.uid,ts:Date.now(),user:auth.currentUser.email};
     showMessage(msg,true);
     msgInput.value="";
-    db.collection("messages").add(msg).catch(err=>alert("Failed: "+err));
+    db.collection("messages").add(msg).then(()=>{
+      starCountEl.classList.add("bump");
+      setTimeout(()=>starCountEl.classList.remove("bump"),300);
+    }).catch(err=>alert("Failed: "+err));
   }
 
   function showMessage(msg,isOptimistic=false){
@@ -122,7 +132,7 @@
     div.className="msg "+(msg.uid===auth.currentUser?.uid?"me":"other");
     div.textContent=msg.user+": "+msg.text;
     messagesDiv.appendChild(div);
-    if(messagesDiv.scrollHeight-messagesDiv.scrollTop<messagesDiv.clientHeight+100){
+    if(messagesDiv.scrollHeight-messagesDiv.scrollTop<=messagesDiv.clientHeight+100){
       messagesDiv.scrollTop=messagesDiv.scrollHeight;
     }
   }
