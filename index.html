@@ -1,207 +1,136 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
-<title>Xixi — Money Talk 💸</title>
-<link rel="icon" href="data:," />
-<style>
-:root{
-  --bg:#000;
-  --card:#111;
-  --muted:#aaa;
-  --accent:#FF1493;
-  --glass: rgba(255,255,255,0.03);
-}
-html,body{height:100%;margin:0;font-family:'XiXi',Inter,system-ui,Segoe UI,Roboto,"Helvetica Neue",Arial;color:#fff;background:var(--bg);}
-.app{display:flex;flex-direction:column;height:100%;gap:12px;padding:12px;box-sizing:border-box;}
-.brand{font-weight:700;font-size:28px;color:var(--accent);text-align:center;}
-.room-desc{font-size:12px;color:var(--muted);text-align:center;margin-bottom:12px;}
-#authBox{margin-bottom:12px;}
-#authBox input{display:block;width:100%;margin-bottom:6px;padding:6px;border-radius:8px;border:1px solid rgba(255,255,255,0.05);background:#000;color:#fff;font-size:14px;}
-#authBox .controls-row{display:flex;gap:6px;margin-top:6px;}
-#authBox button.btn{background:var(--accent);color:#000;border:0;padding:6px 10px;border-radius:8px;cursor:pointer;}
-#authBox button.ghost{background:transparent;border:1px solid rgba(255,255,255,0.05);color:var(--muted);padding:6px;border-radius:8px;}
-#center{flex:1;display:flex;flex-direction:column;gap:6px;}
-#videoContainer{width:100%;aspect-ratio:16/9;background:#111;border-radius:12px;overflow:hidden;position:sticky;top:0;z-index:5;}
-#videoContainer iframe{width:100%;height:100%;border:0;border-radius:12px;}
-#messages{flex:1;overflow:auto;padding:8px;display:flex;flex-direction:column;gap:6px;border-radius:8px;background:#000;margin-bottom:6px;}
-.msg{padding:6px 8px;border-radius:10px;background:var(--glass);max-width:85%;position:relative;display:flex;gap:6px;align-items:center;opacity:0;animation:fadeInUp 0.25s forwards;justify-content:flex-start;}
-.msg.me {background: rgba(255,20,147,0.1);}
-.msg .meta{font-weight:700;font-size:14px;}  
-.msg .content{font-size:12px;color:#fff;white-space:pre-wrap;}  
-.send-area{display:flex;align-items:center;gap:6px;background:var(--card);padding:6px 12px;position:sticky;bottom:0;z-index:10;border-top:1px solid rgba(255,255,255,0.05);border-radius:20px;}
-.send-area input{flex:1;padding:10px 14px;border-radius:999px;border:1px solid rgba(255,255,255,0.1);background:#111;color:#fff;font-size:14px;outline:none;transition:0.2s all;}
-.send-area input::placeholder{color:var(--muted);}
-.send-area input:focus{border-color:var(--accent);box-shadow:0 0 10px rgba(255,20,147,0.4);}
-.send-area button.btn{padding:8px 14px;border-radius:999px;background:var(--accent);color:#000;cursor:pointer;font-weight:600;transition:0.2s all;}
-.send-area button.btn:hover{filter:brightness(1.1);}
-.profile{display:flex;flex-direction:column;gap:4px;margin-top:12px;}
-.profile .small{font-size:12px;color:var(--muted);}
-.star-popup{position:fixed;left:50%;top:18%;transform:translateX(-50%);background:var(--card);padding:6px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.05);display:none;z-index:1000;color:var(--accent);font-size:12px;white-space:nowrap;text-align:center;max-width:90%;}
-.redeem-btn{background:var(--accent);color:#000;font-size:11px;padding:4px 8px;border-radius:6px;cursor:pointer;font-weight:600;margin-left:auto;text-decoration:none;display:none;}
-.admin-panel{display:none;margin-top:8px;padding:6px;background:#111;border-radius:8px;border:1px solid rgba(255,20,147,0.3);}
-.admin-panel button{margin-right:6px;padding:4px 8px;background:var(--accent);color:#000;border:none;border-radius:6px;cursor:pointer;}
-@keyframes fadeInUp{to{opacity:1;transform:translateY(0);}}
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Xixi Chat</title>
+  <style>
+    body {margin:0;font-family:Arial,sans-serif;background:black;color:white;display:flex;flex-direction:column;height:100vh;}
+    #authBox,#chatBox{margin:auto;text-align:center;}
+    #chatBox{display:none;flex-direction:column;width:100%;height:100%;}
+    #messages{flex:1;overflow-y:auto;padding:10px;}
+    .msg{margin:5px 0;padding:8px 12px;border-radius:10px;max-width:70%;text-align:left;}
+    .msg.me{background:rgba(223,244,31,0.08);margin-left:0;}
+    .msg.other{background:rgba(255,255,255,0.1);margin-right:0;}
+    .send-area{display:flex;padding:10px;border-top:1px solid #333;position:sticky;bottom:env(safe-area-inset-bottom);}
+    .send-area input{flex:1;padding:10px;border:none;border-radius:20px;margin-right:10px;}
+    .send-area button{padding:10px 20px;border:none;border-radius:20px;background:#dfF41F;color:black;cursor:pointer;}
+    #starCount.bump{animation:bump 0.3s;}
+    @keyframes bump{0%{transform:scale(1);}50%{transform:scale(1.3);}100%{transform:scale(1);}}
+  </style>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
 </head>
 <body>
-<div class="app">
-  <div class="brand">乂丨乂丨</div>
-  <div class="room-desc">Money Talk 💸 — Chat. Own your vibe.</div>
-
-  <!-- Auth -->
   <div id="authBox">
-    <input type="text" id="authUsername" placeholder="Desired Chat ID" />
-    <input type="email" id="authEmail" placeholder="Email" />
-    <input type="password" id="authPassword" placeholder="Password" />
-    <div class="controls-row">
-      <button id="signinBtn" class="btn">Sign in</button>
-      <button id="signupBtn" class="ghost">Sign up</button>
-      <button id="googleBtn" class="ghost">Google Sign in</button>
-      <button id="signoutBtn" class="ghost" style="display:none">Sign out</button>
-    </div>
+    <h2>Sign In</h2>
+    <input id="authUsername" placeholder="Chat ID"><br><br>
+    <button id="signinBtn">Sign In</button>
+    <button id="signupBtn">Sign Up</button><br><br>
+    <button id="googleBtn">Sign In with Google</button>
   </div>
-
-  <!-- Center panel -->
-  <div id="center">
-    <div id="videoContainer">
-      <iframe src="https://www.youtube.com/embed/dQw4w9WgXcQ" title="Video" allowfullscreen></iframe>
-    </div>
-
+  
+  <div id="chatBox">
     <div id="messages"></div>
-
-    <div class="send-area" id="sendArea" style="display:none;">
-      <input type="text" id="messageInput" placeholder="Type your message..." />
-      <button id="sendBtn" class="btn">Send</button>
+    <div class="send-area">
+      <input id="messageInput" placeholder="Type a message...">
+      <button id="sendBtn">Send</button>
     </div>
+    <div id="adminPanel" style="display:none;margin:10px;">
+      <button id="logoutBtn">Logout</button>
+    </div>
+    <div style="padding:10px;">⭐ Stars: <span id="starCount">0</span></div>
   </div>
 
-  <!-- Profile -->
-  <div class="profile">
-    <div style="display:flex;align-items:center;justify-content:space-between;">
-      <div>
-        <strong id="profileName">GUEST 0000</strong>
-        <div class="small">Stars: <span id="starCount">0</span> ⭐</div>
-        <div class="small">UID: <span id="uid">—</span></div>
-      </div>
-      <a href="https://xixi.live" target="_blank" id="redeemBtn" class="redeem-btn">Redeem</a>
-    </div>
-    <div class="admin-panel" id="adminPanel">
-      <button id="giveStarAdmin">Give Star to Selected User</button>
-      <button id="whitelistEmailAdmin">Whitelist Email</button>
-    </div>
-  </div>
-</div>
+<script>
+  const firebaseConfig = { /* your firebase config */ };
+  firebase.initializeApp(firebaseConfig);
+  const auth = firebase.auth();
+  const db = firebase.firestore();
 
-<!-- Star popup -->
-<div class="star-popup" id="starPopup">
-  <div id="starText">You've just earned +1 star! ⭐</div>
-  <div style="text-align:right;margin-top:6px"><button id="closeStar" class="ghost">Close</button></div>
-</div>
+  const authBox=document.getElementById("authBox");
+  const chatBox=document.getElementById("chatBox");
+  const signinBtn=document.getElementById("signinBtn");
+  const signupBtn=document.getElementById("signupBtn");
+  const googleBtn=document.getElementById("googleBtn");
+  const logoutBtn=document.getElementById("logoutBtn");
+  const msgInput=document.getElementById("messageInput");
+  const sendBtn=document.getElementById("sendBtn");
+  const messagesDiv=document.getElementById("messages");
+  const starCountEl=document.getElementById("starCount");
 
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getAuth, setPersistence, browserLocalPersistence, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { getFirestore, doc, setDoc, getDoc, updateDoc, collection, query, where, getDocs, addDoc, orderBy, serverTimestamp, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+  document.getElementById("authUsername").focus();
 
-const firebaseConfig = {
-  apiKey: "AIzaSyDbKz4ef_eUDlCukjmnK38sOwueYuzqoao",
-  authDomain: "metaverse-1010.firebaseapp.com",
-  projectId: "metaverse-1010",
-  storageBucket: "metaverse-1010.firebasestorage.app",
-  messagingSenderId: "1044064238233",
-  appId: "1:1044064238233:web:2fbdfb811cb0a3ba349608",
-  measurementId: "G-S77BMC266C"
-};
+  // Auth events
+  signinBtn.onclick=()=>{
+    const email=document.getElementById("authUsername").value+"@xixi.com";
+    const pw="defaultpass";
+    signinBtn.textContent="Signing in...";
+    auth.signInWithEmailAndPassword(email,pw).catch(alert).finally(()=>signinBtn.textContent="Sign In");
+  };
+  signupBtn.onclick=()=>{
+    const email=document.getElementById("authUsername").value+"@xixi.com";
+    const pw="defaultpass";
+    signupBtn.textContent="Signing up...";
+    auth.createUserWithEmailAndPassword(email,pw).catch(alert).finally(()=>signupBtn.textContent="Sign Up");
+  };
+  googleBtn.onclick=()=>{
+    const provider=new firebase.auth.GoogleAuthProvider();
+    auth.signInWithPopup(provider).catch(alert);
+  };
+  logoutBtn.onclick=()=>{auth.signOut();};
 
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
-
-setPersistence(auth, browserLocalPersistence);
-
-// Auth buttons
-document.getElementById("signupBtn").addEventListener("click", async () => {
-  const chatId = document.getElementById("authUsername").value.trim();
-  const email = document.getElementById("authEmail").value.trim();
-  const pass = document.getElementById("authPassword").value;
-  if (!chatId || chatId.length < 4) return alert("Chat ID must be at least 4 characters.");
-  const userCredential = await createUserWithEmailAndPassword(auth,email,pass);
-  await setDoc(doc(db,"users",userCredential.user.uid),{chatId,email,stars:0,isAdmin:false});
-});
-
-document.getElementById("signinBtn").addEventListener("click", async () => {
-  const email = document.getElementById("authEmail").value.trim();
-  const pass = document.getElementById("authPassword").value;
-  await signInWithEmailAndPassword(auth,email,pass);
-});
-
-document.getElementById("googleBtn").addEventListener("click", async () => {
-  const provider = new GoogleAuthProvider();
-  const result = await signInWithPopup(auth, provider);
-  const user = result.user;
-  const userRef = doc(db,"users",user.uid);
-  const snap = await getDoc(userRef);
-  if(!snap.exists()){
-    const chatId = prompt("Pick a Chat ID (min 4 chars):");
-    if(!chatId || chatId.length<4) return alert("Invalid Chat ID.");
-    await setDoc(userRef,{chatId,email:user.email,stars:0,isAdmin:false});
-  }
-});
-
-document.getElementById("signoutBtn").addEventListener("click", async () => await signOut(auth));
-
-// Auth state
-onAuthStateChanged(auth, async user => {
-  const sendArea = document.getElementById("sendArea");
-  const redeemBtn = document.getElementById("redeemBtn");
-  const authBox = document.getElementById("authBox");
-  const signoutBtn = document.getElementById("signoutBtn");
-
-  if(user){
-    const userDoc = await getDoc(doc(db,"users",user.uid));
-    const chatId = userDoc.exists()?userDoc.data().chatId:"GUEST";
-    document.getElementById("profileName").textContent = chatId;
-    document.getElementById("uid").textContent = user.uid;
-    sendArea.style.display="flex";
-    redeemBtn.style.display="inline-block";
-    authBox.style.display="none";
-    signoutBtn.style.display="inline-block";
-  }else{
-    document.getElementById("profileName").textContent="GUEST 0000";
-    document.getElementById("uid").textContent="—";
-    sendArea.style.display="none";
-    redeemBtn.style.display="none";
-    authBox.style.display="block";
-    signoutBtn.style.display="none";
-  }
-});
-
-// Chat sending
-document.getElementById("sendBtn").addEventListener("click", async () => {
-  const text = document.getElementById("messageInput").value.trim();
-  if(!text) return;
-  const chatId = document.getElementById("profileName").textContent;
-  await addDoc(collection(db,"messages"),{chatId,text,timestamp:serverTimestamp()});
-  document.getElementById("messageInput").value="";
-});
-
-// Live messages
-const messagesRef = collection(db,"messages");
-const messagesQuery = query(messagesRef,orderBy("timestamp","asc"));
-onSnapshot(messagesQuery,snap=>{
-  const messagesEl = document.getElementById("messages");
-  messagesEl.innerHTML="";
-  snap.forEach(doc=>{
-    const d=doc.data();
-    const msgEl=document.createElement("div");
-    msgEl.classList.add("msg");
-    msgEl.innerHTML=`<div class="meta">${d.chatId}:</div><div class="content">${d.text}</div>`;
-    messagesEl.appendChild(msgEl);
+  auth.onAuthStateChanged(user=>{
+    if(user){
+      authBox.style.display="none";
+      chatBox.style.display="flex";
+      if(user.email.includes("admin")) document.getElementById("adminPanel").style.display="block";
+      addSystemMessage(`${user.displayName||user.email} joined the chat.`);
+    }else{
+      authBox.style.display="block";
+      chatBox.style.display="none";
+    }
   });
-  messagesEl.scrollTop=messagesEl.scrollHeight;
-});
+
+  function addSystemMessage(txt){
+    const div=document.createElement("div");
+    div.className="msg other";
+    div.style.opacity=0.6;
+    div.textContent=txt;
+    messagesDiv.appendChild(div);
+    messagesDiv.scrollTop=messagesDiv.scrollHeight;
+  }
+
+  // Chat
+  sendBtn.onclick=sendMessage;
+  msgInput.addEventListener("keypress",e=>{
+    if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();sendMessage();}
+  });
+
+  function sendMessage(){
+    const text=msgInput.value.trim();
+    if(!text) return;
+    const msg={text,uid:auth.currentUser.uid,ts:Date.now(),user:auth.currentUser.email};
+    showMessage(msg,true);
+    msgInput.value="";
+    db.collection("messages").add(msg).catch(err=>alert("Failed: "+err));
+  }
+
+  function showMessage(msg,isOptimistic=false){
+    const div=document.createElement("div");
+    div.className="msg "+(msg.uid===auth.currentUser?.uid?"me":"other");
+    div.textContent=msg.user+": "+msg.text;
+    messagesDiv.appendChild(div);
+    if(messagesDiv.scrollHeight-messagesDiv.scrollTop<messagesDiv.clientHeight+100){
+      messagesDiv.scrollTop=messagesDiv.scrollHeight;
+    }
+  }
+
+  db.collection("messages").orderBy("ts").onSnapshot(snap=>{
+    messagesDiv.innerHTML="";
+    snap.forEach(doc=>showMessage(doc.data()));
+  });
 </script>
 </body>
 </html>
