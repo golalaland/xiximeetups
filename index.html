@@ -181,13 +181,33 @@ const starCountEl = document.getElementById("starCount");
 const starPopup = document.getElementById("starPopup");
 const starText = document.getElementById("starText");
 
+// Admin prompt helpers
+async function promptGiveStar(){
+  const userEmail = prompt("Enter user email to give 1 star:");
+  if(!userEmail) return;
+  const q = query(collection(db,"users"),where("email","==",userEmail));
+  const snap = await getDocs(q);
+  if(snap.empty) return alert("User not found");
+  snap.forEach(async docSnap=>{
+    await updateDoc(doc(db,"users",docSnap.id),{stars:(docSnap.data().stars||0)+1});
+    alert("Star given!");
+  });
+}
+
+async function promptWhitelistEmail(){
+  const email = prompt("Enter email to whitelist:");
+  if(!email) return;
+  const docRef = doc(db,"whitelist",email);
+  await setDoc(docRef,{email,timestamp:serverTimestamp()});
+  alert("Email whitelisted!");
+}
+
 // Auth
 document.getElementById("signupBtn").addEventListener("click", async () => {
   const email = document.getElementById("authEmail").value.trim();
   const pass = document.getElementById("authPassword").value;
   const chatId = document.getElementById("authUsername").value.trim();
   if (!chatId || chatId.length<4) return alert("Chat ID must be at least 4 chars.");
-
   const userCredential = await createUserWithEmailAndPassword(auth,email,pass);
   await setDoc(doc(db,"users",userCredential.user.uid),{
     chatId,email,stars:0,isAdmin:email.toLowerCase()==="paygeda@gmail.com"
@@ -209,7 +229,7 @@ document.getElementById("googleBtn").addEventListener("click", async () => {
     const userSnap = await getDoc(userRef);
     if(!userSnap.exists()){
       await setDoc(userRef,{
-        chatId:generateGuestName(),stars:0,isAdmin:user.email.toLowerCase()==="paygeda@gmail.com"
+        chatId:generateGuestName(),stars:0,isAdmin:user.email.toLowerCase()==="paygeda@gmail.com",email:user.email
       });
     }
   } catch(e){alert("Google sign-in failed: "+e.message);}
@@ -234,7 +254,11 @@ onAuthStateChanged(auth, async user=>{
     redeemBtn.style.display="inline-block";
     document.getElementById("authBox").style.display="none";
 
-    // Messages
+    // Admin buttons
+    document.getElementById("giveStarAdmin").onclick = promptGiveStar;
+    document.getElementById("whitelistEmailAdmin").onclick = promptWhitelistEmail;
+
+    // Messages live
     const messagesRef = collection(db,"messages");
     const messagesQuery = query(messagesRef,orderBy("timestamp","asc"));
     onSnapshot(messagesQuery,snap=>{
@@ -258,6 +282,14 @@ onAuthStateChanged(auth, async user=>{
       if(snap.exists()) currentUser.stars = snap.data().stars;
       starCountEl.textContent = currentUser.stars;
     });
+
+    // Star increment every 10s
+    setInterval(async ()=>{
+      if(currentUser){
+        await updateDoc(doc(db,"users",currentUser.uid),{stars:currentUser.stars+1});
+      }
+    },10000);
+
   } else {
     currentUser = null;
     profileName.textContent = generateGuestName();
@@ -278,14 +310,7 @@ document.getElementById("sendBtn").addEventListener("click", async ()=>{
     chatId:currentUser.chatId,text,timestamp:serverTimestamp()
   });
   document.getElementById("messageInput").value="";
-  // Give +1 star on message
-  await updateDoc(doc(db,"users",currentUser.uid),{stars:currentUser.stars+1});
-  starPopup.style.display="block";
-  starText.textContent="+1 star! ⭐";
 });
-
-// Close star popup
-document.getElementById("closeStar").addEventListener("click",()=>{starPopup.style.display="none";});
 </script>
 </body>
 </html>
