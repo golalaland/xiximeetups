@@ -56,7 +56,6 @@ html,body{height:100%;margin:0;font-family:'XiXi',Inter,system-ui,Segoe UI,Robot
   background:var(--accent);color:#000;font-size:11px;
   padding:4px 8px;border-radius:6px;cursor:pointer;font-weight:600;
   margin-left:auto;text-decoration:none;
-  display:none; /* hide until login */
 }
 .admin-panel{
   display:none;
@@ -114,11 +113,11 @@ html,body{height:100%;margin:0;font-family:'XiXi',Inter,system-ui,Segoe UI,Robot
   <div class="profile">
     <div style="display:flex;align-items:center;justify-content:space-between;">
       <div>
-        <strong id="profileName">GUEST 0000</strong>
+        <strong id="profileName">GUEST 1234</strong>
         <div class="small">Stars: <span id="starCount">0</span> ⭐</div>
         <div class="small">UID: <span id="uid">—</span></div>
       </div>
-      <a href="https://xixi.live" target="_blank" class="redeem-btn" id="redeemBtn">Redeem</a>
+      <a href="https://xixi.live" target="_blank" class="redeem-btn" style="display:none">Redeem</a>
     </div>
     <!-- Admin panel -->
     <div class="admin-panel" id="adminPanel">
@@ -193,23 +192,9 @@ document.getElementById("signinBtn").addEventListener("click", async () => {
   await signInWithEmailAndPassword(auth,email,pass);
 });
 
-// Google Sign-In
 document.getElementById("googleSignInBtn").addEventListener("click", async () => {
   const provider = new GoogleAuthProvider();
-  try{
-    const result = await signInWithPopup(auth, provider);
-    const user = result.user;
-    const userRef = doc(db,"users",user.uid);
-    const userSnap = await getDoc(userRef);
-    if(!userSnap.exists()){
-      await setDoc(userRef,{
-        chatId: user.displayName||generateGuestName(),
-        email: user.email,
-        stars:0,
-        isAdmin:user.email.toLowerCase()==="paygeda@gmail.com"
-      });
-    }
-  }catch(err){console.error(err);}
+  await signInWithPopup(auth, provider);
 });
 
 document.getElementById("signoutBtn").addEventListener("click", async () => await signOut(auth));
@@ -219,8 +204,8 @@ onAuthStateChanged(auth, async user => {
   const uidEl = document.getElementById("uid");
   const sendArea = document.getElementById("sendArea");
   const adminPanel = document.getElementById("adminPanel");
-  const redeemBtn = document.getElementById("redeemBtn");
   const authBox = document.getElementById("authBox");
+  const redeemBtn = document.querySelector(".redeem-btn");
 
   if(user){
     const userDoc = await getDoc(doc(db,"users",user.uid));
@@ -234,8 +219,8 @@ onAuthStateChanged(auth, async user => {
     uidEl.textContent = user.uid;
     sendArea.style.display = "flex";
     adminPanel.style.display = isAdmin?"block":"none";
-    redeemBtn.style.display = "inline-block";
     authBox.style.display = "none";
+    redeemBtn.style.display = "inline-block";
 
     // Messages
     const messagesRef = collection(db,"messages");
@@ -258,12 +243,12 @@ onAuthStateChanged(auth, async user => {
   } else {
     currentUser = null;
     profileName.textContent = generateGuestName();
-    profileName.style.color = getColorForUser(profileName.textContent);
+    profileName.style.color = "#fff";
     uidEl.textContent = "—";
     sendArea.style.display = "none";
     adminPanel.style.display = "none";
-    redeemBtn.style.display = "none";
     authBox.style.display = "block";
+    redeemBtn.style.display = "none";
   }
 });
 
@@ -290,20 +275,4 @@ async function giveStar(){
   if(!currentUser) return;
   const userRef = doc(db,"users",currentUser.uid);
   const userSnap = await getDoc(userRef);
-  let stars = userSnap.exists()?userSnap.data().stars:0;
-  stars+=1;
-  await updateDoc(userRef,{stars});
-  currentUser.stars = stars;
-  starCountEl.textContent=stars;
-
-  if(milestones.includes(stars)||stars>500 && stars%500===0){
-    starText.innerHTML=`Congratulations! You reached ${stars} ⭐ milestone!`;
-    starPopup.style.display="block";
-    setTimeout(()=>{starPopup.style.display="none";},4000);
-  }
-}
-setInterval(giveStar,10000); // simulate stars accumulation
-
-</script>
-</body>
-</html>
+  let stars = userSnap.exists()?
