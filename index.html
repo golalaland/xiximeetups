@@ -55,7 +55,7 @@ html,body{height:100%;margin:0;font-family:'XiXi',Inter,system-ui,Segoe UI,Robot
 .redeem-btn{
   background:var(--accent);color:#000;font-size:11px;
   padding:4px 8px;border-radius:6px;cursor:pointer;font-weight:600;
-  margin-left:auto;text-decoration:none;
+  margin-left:auto;text-decoration:none;display:none;
 }
 .admin-panel{
   display:none;
@@ -113,11 +113,11 @@ html,body{height:100%;margin:0;font-family:'XiXi',Inter,system-ui,Segoe UI,Robot
   <div class="profile">
     <div style="display:flex;align-items:center;justify-content:space-between;">
       <div>
-        <strong id="profileName">GUEST 1234</strong>
+        <strong id="profileName">GUEST 0000</strong>
         <div class="small">Stars: <span id="starCount">0</span> ⭐</div>
         <div class="small">UID: <span id="uid">—</span></div>
       </div>
-      <a href="https://xixi.live" target="_blank" class="redeem-btn" style="display:none">Redeem</a>
+      <a href="https://xixi.live" target="_blank" class="redeem-btn" id="redeemBtn">Redeem</a>
     </div>
     <!-- Admin panel -->
     <div class="admin-panel" id="adminPanel">
@@ -135,8 +135,14 @@ html,body{height:100%;margin:0;font-family:'XiXi',Inter,system-ui,Segoe UI,Robot
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getAuth, setPersistence, browserLocalPersistence, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { getFirestore, doc, setDoc, getDoc, updateDoc, collection, query, where, getDocs, addDoc, orderBy, serverTimestamp, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { 
+  getAuth, setPersistence, browserLocalPersistence, 
+  createUserWithEmailAndPassword, signInWithEmailAndPassword, 
+  onAuthStateChanged, signOut, GoogleAuthProvider, signInWithPopup 
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { 
+  getFirestore, doc, setDoc, getDoc, updateDoc, collection, query, where, getDocs, addDoc, orderBy, serverTimestamp, onSnapshot 
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 // Firebase Config
 const firebaseConfig = {
@@ -156,7 +162,7 @@ const db = getFirestore(app);
 let currentUser = null;
 let userColors = {};
 
-// Guest random ID
+// Guest random name
 function generateGuestName(){
   return "GUEST " + Math.floor(1000 + Math.random()*9000);
 }
@@ -173,12 +179,17 @@ function getColorForUser(chatId){
 // Auto-login persistence
 setPersistence(auth, browserLocalPersistence).catch(err => console.error("Persistence error:", err));
 
-// Auth events
+// -------------------- AUTH --------------------
 document.getElementById("signupBtn").addEventListener("click", async () => {
   const email = document.getElementById("authEmail").value.trim();
   const pass = document.getElementById("authPassword").value;
   const chatId = document.getElementById("authUsername").value.trim();
   if (!chatId || chatId.length < 4) return alert("Chat ID must be at least 4 characters.");
+
+  const usersRef = collection(db, "users");
+  const chatQ = query(usersRef, where("chatId", "==", chatId));
+  const chatSnap = await getDocs(chatQ);
+  if(!chatSnap.empty) return alert("Chat ID already exists.");
 
   const userCredential = await createUserWithEmailAndPassword(auth,email,pass);
   await setDoc(doc(db,"users",userCredential.user.uid),{
@@ -194,20 +205,31 @@ document.getElementById("signinBtn").addEventListener("click", async () => {
 
 document.getElementById("googleSignInBtn").addEventListener("click", async () => {
   const provider = new GoogleAuthProvider();
-  await signInWithPopup(auth, provider);
+  try {
+    const result = await signInWithPopup(auth, provider);
+    console.log("Signed in:", result.user.displayName);
+  } catch (err) {
+    console.error("Google Sign-In failed:", err.message);
+    alert("Google Sign-In failed: " + err.message);
+  }
 });
 
 document.getElementById("signoutBtn").addEventListener("click", async () => await signOut(auth));
 
+// -------------------- AUTH STATE --------------------
 onAuthStateChanged(auth, async user => {
   const profileName = document.getElementById("profileName");
   const uidEl = document.getElementById("uid");
   const sendArea = document.getElementById("sendArea");
   const adminPanel = document.getElementById("adminPanel");
+  const redeemBtn = document.getElementById("redeemBtn");
   const authBox = document.getElementById("authBox");
-  const redeemBtn = document.querySelector(".redeem-btn");
 
   if(user){
+    authBox.style.display = "none";
+    sendArea.style.display = "flex";
+    redeemBtn.style.display = "inline-block";
+
     const userDoc = await getDoc(doc(db,"users",user.uid));
     const chatId = userDoc.exists()?userDoc.data().chatId:generateGuestName();
     let stars = userDoc.exists()?userDoc.data().stars:0;
@@ -217,62 +239,74 @@ onAuthStateChanged(auth, async user => {
     profileName.textContent = chatId;
     profileName.style.color = getColorForUser(chatId);
     uidEl.textContent = user.uid;
-    sendArea.style.display = "flex";
     adminPanel.style.display = isAdmin?"block":"none";
-    authBox.style.display = "none";
-    redeemBtn.style.display = "inline-block";
 
     // Messages
     const messagesRef = collection(db,"messages");
-    const messagesQuery = query(messagesRef,orderBy("timestamp","asc"));
-    onSnapshot(messagesQuery,snap=>{
+    const messagesQuery = query(messagesRef, orderBy("timestamp","asc"));
+    onSnapshot(messagesQuery, snap => {
       const messagesEl = document.getElementById("messages");
-      messagesEl.innerHTML = "";
+      messagesEl.innerHTML="";
       snap.forEach(doc=>{
-        const data = doc.data();
-        const msgEl = document.createElement("div");
-        msgEl.classList.add("msg");
-        if(data.chatId===currentUser.chatId) msgEl.classList.add("me");
-        const color = getColorForUser(data.chatId);
-        msgEl.innerHTML = `<div class="meta" style="color:${color}">${data.chatId}:</div><div class="content">${data.text}</div>`;
-        messagesEl.appendChild(msgEl);
+        const msgData = doc.data();
+        const msgDiv = document.createElement("div");
+        msgDiv.className="msg";
+        if(msgData.uid===currentUser.uid) msgDiv.classList.add("me");
+        const meta = document.createElement("div");
+        meta.className="meta";
+        meta.textContent = msgData.chatId;
+        meta.style.color = getColorForUser(msgData.chatId);
+        const content = document.createElement("div");
+        content.className="content";
+        content.textContent = msgData.text;
+        msgDiv.appendChild(meta);
+        msgDiv.appendChild(content);
+        messagesEl.appendChild(msgDiv);
+        messagesEl.scrollTop = messagesEl.scrollHeight;
       });
-      messagesEl.scrollTop = messagesEl.scrollHeight;
     });
 
-  } else {
-    currentUser = null;
-    profileName.textContent = generateGuestName();
-    profileName.style.color = "#fff";
-    uidEl.textContent = "—";
-    sendArea.style.display = "none";
-    adminPanel.style.display = "none";
+  }else{
+    // Guest
     authBox.style.display = "block";
+    sendArea.style.display = "none";
     redeemBtn.style.display = "none";
+    profileName.textContent = generateGuestName();
+    profileName.style.color="#fff";
+    uidEl.textContent="—";
+    currentUser=null;
   }
 });
 
-// Sending messages
-document.getElementById("sendBtn").addEventListener("click",async()=>{
-  const text = document.getElementById("messageInput").value.trim();
-  if(!text||!currentUser) return;
+// -------------------- CHAT --------------------
+document.getElementById("sendBtn").addEventListener("click", async ()=>{
+  const input = document.getElementById("messageInput");
+  if(!input.value.trim() || !currentUser) return;
   await addDoc(collection(db,"messages"),{
+    text:input.value.trim(),
     chatId:currentUser.chatId,
-    text,
+    uid:currentUser.uid,
     timestamp:serverTimestamp()
   });
-  document.getElementById("messageInput").value="";
+  input.value="";
 });
 
-// Stars milestone
-const starCountEl = document.getElementById("starCount");
-const starPopup = document.getElementById("starPopup");
-const starText = document.getElementById("starText");
-document.getElementById("closeStar").addEventListener("click",()=>{starPopup.style.display="none";});
-
-const milestones = [50,100,200,500];
-async function giveStar(){
+// -------------------- STAR LOGIC --------------------
+async function addStar(count=1){
   if(!currentUser) return;
-  const userRef = doc(db,"users",currentUser.uid);
-  const userSnap = await getDoc(userRef);
-  let stars = userSnap.exists()?
+  currentUser.stars += count;
+  document.getElementById("starCount").textContent=currentUser.stars;
+  await updateDoc(doc(db,"users",currentUser.uid),{stars:currentUser.stars});
+  const popup = document.getElementById("starPopup");
+  document.getElementById("starText").textContent=`You've just earned +${count} ⭐`;
+  popup.style.display="block";
+}
+document.getElementById("closeStar").addEventListener("click",()=>document.getElementById("starPopup").style.display="none");
+
+// -------------------- GUEST NAME + RANDOM --------------------
+function generateGuestNameNum(){
+  return "GUEST " + Math.floor(1000 + Math.random()*9000);
+}
+</script>
+</body>
+</html>
