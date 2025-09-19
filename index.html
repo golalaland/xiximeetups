@@ -55,7 +55,7 @@ html,body{height:100%;margin:0;font-family:'XiXi',Inter,system-ui,Segoe UI,Robot
 .redeem-btn{
   background:var(--accent);color:#000;font-size:11px;
   padding:4px 8px;border-radius:6px;cursor:pointer;font-weight:600;
-  margin-left:auto;text-decoration:none;display:none;
+  margin-left:auto;text-decoration:none;
 }
 .admin-panel{
   display:none;
@@ -66,10 +66,6 @@ html,body{height:100%;margin:0;font-family:'XiXi',Inter,system-ui,Segoe UI,Robot
   border:1px solid rgba(255,20,147,0.3);
 }
 .admin-panel button{margin-right:6px;padding:4px 8px;background:var(--accent);color:#000;border:none;border-radius:6px;cursor:pointer;}
-#leaderboard{margin-top:12px;background:#111;padding:6px;border-radius:8px;border:1px solid rgba(255,20,147,0.3);}
-#leaderboard h4{margin:0 0 6px 0;font-size:14px;color:var(--accent);}
-#leaderboard ul{list-style:none;padding:0;margin:0;font-size:12px;}
-#leaderboard li{padding:2px 0;}
 @keyframes fadeInUp{to{opacity:1;transform:translateY(0);}}
 @media (max-width:600px){
   .send-area{padding:6px 8px;}
@@ -87,7 +83,7 @@ html,body{height:100%;margin:0;font-family:'XiXi',Inter,system-ui,Segoe UI,Robot
 
   <!-- Auth -->
   <div id="authBox">
-    <input type="text" id="authUsername" placeholder="Pick your username" />
+    <input type="text" id="authUsername" placeholder="Desired Chat ID" />
     <input type="email" id="authEmail" placeholder="Email" />
     <input type="password" id="authPassword" placeholder="Password" />
     <div class="controls-row">
@@ -117,21 +113,18 @@ html,body{height:100%;margin:0;font-family:'XiXi',Inter,system-ui,Segoe UI,Robot
   <div class="profile">
     <div style="display:flex;align-items:center;justify-content:space-between;">
       <div>
-        <strong id="profileName" style="color:#fff;">GUEST 0000</strong>
+        <strong id="profileName">GUEST 1234</strong>
         <div class="small">Stars: <span id="starCount">0</span> ⭐</div>
         <div class="small">UID: <span id="uid">—</span></div>
       </div>
-      <a href="https://xixi.live" target="_blank" class="redeem-btn" id="redeemBtn">Redeem</a>
+      <a href="https://xixi.live" target="_blank" class="redeem-btn" style="display:none;" id="redeemBtn">Redeem</a>
     </div>
     <!-- Admin panel -->
     <div class="admin-panel" id="adminPanel">
-      <button id="giveStarAdmin">Give Star to Selected User</button>
+      <button id="giveStarAdmin">Give Star</button>
       <button id="whitelistEmailAdmin">Whitelist Email</button>
-    </div>
-    <!-- Leaderboard -->
-    <div id="leaderboard">
-      <h4>Leaderboard</h4>
-      <ul id="leaderboardList"></ul>
+      <button id="resetStarsAdmin">Reset All Stars</button>
+      <button id="changeChatIdAdmin">Change Chat ID</button>
     </div>
   </div>
 </div>
@@ -147,15 +140,15 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
 import { getAuth, setPersistence, browserLocalPersistence, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { getFirestore, doc, setDoc, getDoc, updateDoc, collection, query, where, getDocs, addDoc, orderBy, serverTimestamp, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-// Firebase Config
+// Firebase config
 const firebaseConfig = {
-  apiKey: "AIzaSyDbKz4ef_eUDlCukjmnK38sOwueYuzqoao",
-  authDomain: "metaverse-1010.firebaseapp.com",
-  projectId: "metaverse-1010",
-  storageBucket: "metaverse-1010.firebasestorage.app",
-  messagingSenderId: "1044064238233",
-  appId: "1:1044064238233:web:2fbdfb811cb0a3ba349608",
-  measurementId: "G-S77BMC266C"
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_PROJECT.firebaseapp.com",
+  projectId: "YOUR_PROJECT",
+  storageBucket: "YOUR_PROJECT.appspot.com",
+  messagingSenderId: "YOUR_SENDER_ID",
+  appId: "YOUR_APP_ID",
+  measurementId: "YOUR_MEASUREMENT_ID"
 };
 
 const app = initializeApp(firebaseConfig);
@@ -164,13 +157,17 @@ const db = getFirestore(app);
 
 let currentUser = null;
 let userColors = {};
+const starCountEl = document.getElementById("starCount");
+const starPopup = document.getElementById("starPopup");
+const starText = document.getElementById("starText");
+const milestones = [50,100,200,500];
 
-// Guest random ID
+// Guest name generator
 function generateGuestName(){
   return "GUEST " + Math.floor(1000 + Math.random()*9000);
 }
 
-// Color per user session
+// Random color per session
 function getColorForUser(chatId){
   if(!userColors[chatId]){
     const colors = ["#FF6B6B","#FF1493","#FF69B4","#FF85C0","#FF00FF"];
@@ -179,39 +176,63 @@ function getColorForUser(chatId){
   return userColors[chatId];
 }
 
-// Auto-login persistence
-setPersistence(auth, browserLocalPersistence).catch(err => console.error("Persistence error:", err));
+// Persistence
+setPersistence(auth,browserLocalPersistence).catch(console.error);
 
-// Auth events
-document.getElementById("signupBtn").addEventListener("click", async () => {
+// Signup
+document.getElementById("signupBtn").addEventListener("click",async()=>{
   const email = document.getElementById("authEmail").value.trim();
   const pass = document.getElementById("authPassword").value;
   const chatId = document.getElementById("authUsername").value.trim();
-  if (!chatId || chatId.length < 3) return alert("Username must be at least 3 characters.");
-  try {
-    const userCredential = await createUserWithEmailAndPassword(auth,email,pass);
-    await setDoc(doc(db,"users",userCredential.user.uid),{
-      chatId,email,stars:0,isAdmin:email.toLowerCase()==="paygeda@gmail.com"
-    });
-  } catch(e){alert("Signup failed: "+e.message);}
+  if(!chatId||chatId.length<3) return alert("Chat ID must be at least 3 characters.");
+
+  // Whitelist check
+  const whitelistRef = collection(db,"whitelist");
+  const q = query(whitelistRef,where("email","==",email));
+  const snap = await getDocs(q);
+  if(snap.empty) return alert("Email not whitelisted.");
+
+  // Chat ID uniqueness
+  const usersRef = collection(db,"users");
+  const chatQ = query(usersRef,where("chatId","==",chatId));
+  const chatSnap = await getDocs(chatQ);
+  if(!chatSnap.empty) return alert("Chat ID already exists.");
+
+  const userCredential = await createUserWithEmailAndPassword(auth,email,pass);
+  await setDoc(doc(db,"users",userCredential.user.uid),{
+    chatId,email,stars:0,isAdmin:email.toLowerCase()==="paygeda@gmail.com"
+  });
 });
 
-document.getElementById("signinBtn").addEventListener("click", async () => {
+// Signin
+document.getElementById("signinBtn").addEventListener("click",async()=>{
   const email = document.getElementById("authEmail").value.trim();
   const pass = document.getElementById("authPassword").value;
-  try{await signInWithEmailAndPassword(auth,email,pass);}catch(e){alert("Login failed: "+e.message);}
+  await signInWithEmailAndPassword(auth,email,pass);
 });
 
-document.getElementById("googleSignInBtn").addEventListener("click", async ()=>{
-  try{
-    const provider = new GoogleAuthProvider();
-    await signInWithPopup(auth,provider);
-  }catch(e){alert("Google sign in failed: "+e.message);}
+// Google sign-in
+document.getElementById("googleSignInBtn").addEventListener("click",async()=>{
+  const provider = new GoogleAuthProvider();
+  const result = await signInWithPopup(auth,provider);
+  const user = result.user;
+  // First-time Google login: check if Firestore doc exists
+  const userRef = doc(db,"users",user.uid);
+  const snap = await getDoc(userRef);
+  if(!snap.exists()){
+    let chatId = prompt("Enter your desired Chat ID:");
+    if(!chatId||chatId.length<3) chatId = generateGuestName();
+    await setDoc(userRef,{
+      chatId,stars:0,email:user.email,isAdmin:user.email.toLowerCase()==="paygeda@gmail.com"
+    });
+  }
 });
 
-document.getElementById("signoutBtn").addEventListener("click", async ()=>await signOut(auth));
+// Signout
+document.getElementById("signoutBtn").addEventListener("click",()=>signOut(auth));
 
-onAuthStateChanged(auth, async user => {
+// Auth state changes
+onAuthStateChanged(auth,async(user)=>{
   const profileName = document.getElementById("profileName");
   const uidEl = document.getElementById("uid");
   const sendArea = document.getElementById("sendArea");
@@ -220,98 +241,106 @@ onAuthStateChanged(auth, async user => {
   const authBox = document.getElementById("authBox");
 
   if(user){
-    const userDoc = await getDoc(doc(db,"users",user.uid));
-    let chatId = userDoc.exists()?userDoc.data().chatId:generateGuestName();
-    let stars = userDoc.exists()?userDoc.data().stars:0;
-    const isAdmin = userDoc.exists()?userDoc.data().isAdmin:false;
-
-    currentUser = {uid:user.uid, chatId, stars, isAdmin};
-    profileName.textContent = chatId;
-    uidEl.textContent = user.uid;
-    sendArea.style.display = "flex";
-    adminPanel.style.display = isAdmin?"block":"none";
-    redeemBtn.style.display = "inline-block";
     authBox.style.display = "none";
+    sendArea.style.display = "flex";
+    redeemBtn.style.display = "inline-block";
 
-    // Live messages
-    const messagesRef = collection(db,"messages");
-    const messagesQuery = query(messagesRef,orderBy("timestamp","asc"));
-    onSnapshot(messagesQuery,snap=>{
-      const messagesEl = document.getElementById("messages");
-      messagesEl.innerHTML = "";
-      snap.forEach(doc=>{
-        const data = doc.data();
-        const msgEl = document.createElement("div");
-        msgEl.classList.add("msg");
-        if(data.chatId===currentUser.chatId) msgEl.classList.add("me");
-        const color = getColorForUser(data.chatId);
-        msgEl.innerHTML = `<div class="meta" style="color:${color}">${data.chatId}:</div><div class="content">${data.text}</div>`;
-        messagesEl.appendChild(msgEl);
-      });
-      messagesEl.scrollTop = messagesEl.scrollHeight;
+    const userDoc = await getDoc(doc(db,"users",user.uid));
+    currentUser = userDoc.data();
+    uidEl.textContent = user.uid;
+    profileName.textContent = currentUser.chatId;
+    profileName.style.color=getColorForUser(currentUser.chatId);
+
+    if(currentUser.isAdmin) adminPanel.style.display="block";
+
+    // Live stars listener
+    const userRef = doc(db,"users",user.uid);
+    onSnapshot(userRef,(snap)=>{
+      const data = snap.data();
+      starCountEl.textContent = data.stars||0;
     });
 
-    // Live leaderboard
-    const usersRef = collection(db,"users");
-    const leaderboardQuery = query(usersRef,orderBy("stars","desc"));
-    onSnapshot(leaderboardQuery,snap=>{
-      const lb = document.getElementById("leaderboardList");
-      lb.innerHTML = "";
-      snap.forEach(d=>lb.innerHTML+=`<li>${d.data().chatId} — ⭐ ${d.data().stars}</li>`);
-    });
-
-  }else{
-    currentUser = null;
+  } else {
+    authBox.style.display="block";
+    sendArea.style.display="none";
+    redeemBtn.style.display="none";
+    adminPanel.style.display="none";
     profileName.textContent = generateGuestName();
-    uidEl.textContent = "—";
-    sendArea.style.display = "none";
-    adminPanel.style.display = "none";
-    redeemBtn.style.display = "none";
-    authBox.style.display = "block";
+    uidEl.textContent="—";
+    starCountEl.textContent=0;
+    currentUser=null;
   }
 });
 
-// Send message
-document.getElementById("sendBtn").addEventListener("click", async ()=>{
-  const input = document.getElementById("messageInput");
-  const val = input.value.trim();
-  if(!val||!currentUser) return;
+// Messages
+const messagesEl = document.getElementById("messages");
+document.getElementById("sendBtn").addEventListener("click",async()=>{
+  const msgInput = document.getElementById("messageInput");
+  if(!msgInput.value.trim()) return;
+  const msg = msgInput.value.trim();
+  msgInput.value="";
+  // Display locally
+  const div = document.createElement("div");
+  div.className="msg me";
+  div.innerHTML=`<span class="meta">${currentUser.chatId}</span>: <span class="content">${msg}</span>`;
+  div.style.color=getColorForUser(currentUser.chatId);
+  messagesEl.appendChild(div);
+  messagesEl.scrollTop=messagesEl.scrollHeight;
+
+  // Save to Firestore
   await addDoc(collection(db,"messages"),{
-    text: val,
-    chatId: currentUser.chatId,
-    timestamp: serverTimestamp()
+    uid:auth.currentUser.uid,
+    chatId:currentUser.chatId,
+    message:msg,
+    timestamp:serverTimestamp()
   });
-  input.value = "";
 });
 
-// Star increment every 10 seconds
-setInterval(async ()=>{
+// Live messages listener
+const messagesRef = collection(db,"messages");
+onSnapshot(messagesRef, snap=>{
+  messagesEl.innerHTML="";
+  snap.docs.sort((a,b)=>a.data().timestamp?.seconds-(b.data().timestamp?.seconds||0)).forEach(d=>{
+    const data = d.data();
+    const div = document.createElement("div");
+    div.className="msg";
+    div.innerHTML=`<span class="meta">${data.chatId}</span>: <span class="content">${data.message}</span>`;
+    div.style.color=getColorForUser(data.chatId);
+    messagesEl.appendChild(div);
+  });
+  messagesEl.scrollTop=messagesEl.scrollHeight;
+});
+
+// Auto star accumulation every 10s
+setInterval(async()=>{
   if(currentUser){
-    currentUser.stars++;
-    document.getElementById("starCount").textContent = currentUser.stars;
-    await updateDoc(doc(db,"users",currentUser.uid),{stars:currentUser.stars});
-    const popup = document.getElementById("starPopup");
-    popup.style.display="block";
-    document.getElementById("starText").textContent = `+1 star! ⭐`;
-    setTimeout(()=>popup.style.display="none",2000);
+    const userRef = doc(db,"users",auth.currentUser.uid);
+    await updateDoc(userRef,{stars:(currentUser.stars||0)+1});
+    currentUser.stars=(currentUser.stars||0)+1;
+    starCountEl.textContent=currentUser.stars;
+    starPopup.style.display="block";
+    starText.textContent=`+1 star! ⭐ Total: ${currentUser.stars}`;
   }
 },10000);
 
-// Admin give star
-document.getElementById("giveStarAdmin").addEventListener("click", async ()=>{
-  const targetUid = prompt("Enter UID of user to give 1 star:");
-  if(!targetUid) return;
-  const docRef = doc(db,"users",targetUid);
-  const docSnap = await getDoc(docRef);
-  if(docSnap.exists()){
-    await updateDoc(docRef,{stars:docSnap.data().stars+1});
-    alert("Star given!");
-  }else alert("User not found!");
+document.getElementById("closeStar").addEventListener("click",()=>starPopup.style.display="none");
+
+// Admin buttons
+document.getElementById("giveStarAdmin").addEventListener("click",async()=>{
+  const uid = prompt("User UID to give star:");
+  if(!uid) return;
+  const userRef = doc(db,"users",uid);
+  await updateDoc(userRef,{stars:(currentUser.stars||0)+1});
 });
-
-// Close star popup
-document.getElementById("closeStar").addEventListener("click", ()=>document.getElementById("starPopup").style.display="none");
-
+document.getElementById("resetStarsAdmin").addEventListener("click",async()=>{
+  const qSnap = await getDocs(collection(db,"users"));
+  qSnap.docs.forEach(d=>updateDoc(doc(db,"users",d.id),{stars:0}));
+});
+document.getElementById("changeChatIdAdmin").addEventListener("click",async()=>{
+  const uid = prompt("User UID:");
+  const newId = prompt("New Chat ID:");
+  if(uid && newId) await updateDoc(doc(db,"users",uid),{chatId:newId});
+});
 </script>
 </body>
 </html>
