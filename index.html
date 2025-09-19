@@ -10,7 +10,7 @@
   --bg:#000;
   --card:#111;
   --muted:#aaa;
-  --accent:#FF1493; /* deep pink */
+  --accent:#FF1493;
   --glass: rgba(255,255,255,0.03);
 }
 html,body{height:100%;margin:0;font-family:'XiXi',Inter,system-ui,Segoe UI,Roboto,"Helvetica Neue",Arial;color:#fff;background:var(--bg);}
@@ -33,7 +33,8 @@ html,body{height:100%;margin:0;font-family:'XiXi',Inter,system-ui,Segoe UI,Robot
 .send-area{
   display:flex;align-items:center;gap:6px;
   background:var(--card);padding:6px 12px;
-  position:sticky;bottom:0;z-index:10;border-top:1px solid rgba(255,255,255,0.05);
+  position:sticky;bottom:env(safe-area-inset-bottom);
+  z-index:10;border-top:1px solid rgba(255,255,255,0.05);
   border-radius:20px;
 }
 .send-area input{
@@ -66,6 +67,8 @@ html,body{height:100%;margin:0;font-family:'XiXi',Inter,system-ui,Segoe UI,Robot
   border:1px solid rgba(255,20,147,0.3);
 }
 .admin-panel button{margin-right:6px;padding:4px 8px;background:var(--accent);color:#000;border:none;border-radius:6px;cursor:pointer;}
+#starCount.bump { animation: bump 0.3s; }
+@keyframes bump { 0%{transform:scale(1);}50%{transform:scale(1.3);}100%{transform:scale(1);} }
 @keyframes fadeInUp{to{opacity:1;transform:translateY(0);}}
 @media (max-width:600px){
   .send-area{padding:6px 8px;}
@@ -81,7 +84,7 @@ html,body{height:100%;margin:0;font-family:'XiXi',Inter,system-ui,Segoe UI,Robot
   <div class="brand">乂丨乂丨</div>
   <div class="room-desc">Money Talk 💸 — Chat. Own your vibe.</div>
 
-  <!-- Auth (unchanged layout) -->
+  <!-- Auth -->
   <div id="authBox">
     <input type="text" id="authUsername" placeholder="Desired Chat ID" />
     <input type="email" id="authEmail" placeholder="Email" />
@@ -123,6 +126,7 @@ html,body{height:100%;margin:0;font-family:'XiXi',Inter,system-ui,Segoe UI,Robot
     <div class="admin-panel" id="adminPanel">
       <button id="giveStarAdmin">Give Star to Selected User</button>
       <button id="whitelistEmailAdmin">Whitelist Email</button>
+      <button id="logoutAdmin">Logout</button>
     </div>
   </div>
 </div>
@@ -134,45 +138,18 @@ html,body{height:100%;margin:0;font-family:'XiXi',Inter,system-ui,Segoe UI,Robot
 </div>
 
 <script type="module">
-/* 
-  Functionality added only — layout and styles exactly preserved.
-  Make sure:
-   • Google provider enabled in Firebase Auth
-   • Your domain(s) are added to Authorized domains
-   • Firestore rules allow reads/writes for authenticated users
-*/
-
-// Firebase imports
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { 
-  getAuth, setPersistence, browserLocalPersistence, 
-  createUserWithEmailAndPassword, signInWithEmailAndPassword, 
-  onAuthStateChanged, signOut, GoogleAuthProvider, signInWithPopup 
-} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { 
-  getFirestore, doc, setDoc, getDoc, updateDoc, collection, query, where, getDocs, addDoc, orderBy, serverTimestamp, onSnapshot, getDocsFromCache 
-} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getAuth, setPersistence, browserLocalPersistence, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getFirestore, doc, setDoc, getDoc, updateDoc, collection, query, where, getDocs, addDoc, orderBy, serverTimestamp, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-// ----- Firebase config (corrected storageBucket) -----
-const firebaseConfig = {
-  apiKey: "AIzaSyDbKz4ef_eUDlCukjmnK38sOwueYuzqoao",
-  authDomain: "metaverse-1010.firebaseapp.com",
-  projectId: "metaverse-1010",
-  storageBucket: "metaverse-1010.appspot.com",
-  messagingSenderId: "1044064238233",
-  appId: "1:1044064238233:web:2fbdfb811cb0a3ba349608",
-  measurementId: "G-S77BMC266C"
-};
-
+const firebaseConfig = { /* ... your config ... */ };
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-// State
 let currentUser = null;
 let userColors = {};
 
-// Utilities (unchanged style behavior)
 function generateGuestName(){ return "GUEST " + Math.floor(1000 + Math.random()*9000); }
 function getColorForUser(chatId){
   if(!userColors[chatId]){
@@ -181,239 +158,73 @@ function getColorForUser(chatId){
   }
   return userColors[chatId];
 }
-setPersistence(auth, browserLocalPersistence).catch(err => console.error("Persistence error:", err));
+setPersistence(auth, browserLocalPersistence);
 
-// ------ SIGNUP / SIGNIN (email/password) with error handling ------
-document.getElementById("signupBtn").addEventListener("click", async () => {
-  try {
-    const email = document.getElementById("authEmail").value.trim();
-    const pass = document.getElementById("authPassword").value;
-    const chatId = document.getElementById("authUsername").value.trim();
-    if (!chatId || chatId.length < 4) return alert("Chat ID must be at least 4 characters.");
+// Autofocus on load
+document.getElementById("authUsername").focus();
 
-    // whitelist check
-    const wlRef = collection(db,"whitelist");
-    const q = query(wlRef, where("email","==",email.toLowerCase()));
-    const snap = await getDocs(q);
-    if(snap.empty && email.toLowerCase() !== "paygeda@gmail.com") {
-      return alert("Email not whitelisted.");
-    }
+// Enter-to-submit login/signup
+document.querySelectorAll('#authBox input').forEach(inp=>{
+  inp.addEventListener("keypress", e=>{
+    if(e.key==="Enter") document.getElementById("signinBtn").click();
+  });
+});
 
-    // chatId uniqueness
-    const usersRef = collection(db,"users");
-    const q2 = query(usersRef, where("chatId","==",chatId));
-    const snap2 = await getDocs(q2);
-    if(!snap2.empty) return alert("Chat ID already exists.");
+// Signup/signin buttons with loading state
+async function withLoading(btn, fn){
+  const orig = btn.textContent;
+  btn.textContent = "...";
+  btn.disabled = true;
+  try { await fn(); } finally { btn.textContent = orig; btn.disabled=false; }
+}
 
-    const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
-    await setDoc(doc(db,"users",userCredential.user.uid),{
-      chatId, email, stars:0, isAdmin: email.toLowerCase()==="paygeda@gmail.com"
-    });
-    // success: onAuthStateChanged will run and hide authBox
-  } catch (err) {
-    console.error("Signup error:", err);
-    alert("Signup failed: " + (err.message || err));
+// ENTER to send msg
+document.getElementById("messageInput").addEventListener("keypress", e=>{
+  if(e.key==="Enter" && !e.shiftKey){
+    e.preventDefault();
+    document.getElementById("sendBtn").click();
   }
 });
 
-document.getElementById("signinBtn").addEventListener("click", async () => {
-  try {
-    const email = document.getElementById("authEmail").value.trim();
-    const pass = document.getElementById("authPassword").value;
-    await signInWithEmailAndPassword(auth, email, pass);
-  } catch (err) {
-    console.error("Signin error:", err);
-    alert("Signin failed: " + (err.message || err));
-  }
-});
-
-// ------ GOOGLE SIGN IN (bound to your existing Google button) ------
-document.getElementById("googleBtn").addEventListener("click", async () => {
-  const provider = new GoogleAuthProvider();
-  try {
-    const result = await signInWithPopup(auth, provider);
-    // After sign-in, create user doc if missing (preserve exact layout)
-    const user = result.user;
-    if (!user) return;
-    const uRef = doc(db,"users",user.uid);
-    const uSnap = await getDoc(uRef);
-    if (!uSnap.exists()) {
-      // whitelist check before creating user doc
-      const email = (user.email || "").toLowerCase();
-      const wlSnap = (await getDocs(query(collection(db,"whitelist"), where("email","==", email))));
-      const allowed = (email === "paygeda@gmail.com") || !wlSnap.empty;
-      if (!allowed) {
-        alert("Email not whitelisted. Contact admin.");
-        await signOut(auth);
-        return;
-      }
-      await setDoc(uRef, {
-        chatId: user.displayName ? user.displayName.replace(/\s+/g, "").slice(0,20) : generateGuestName(),
-        email: user.email,
-        stars: 0,
-        isAdmin: (user.email && user.email.toLowerCase() === "paygeda@gmail.com")
-      });
-    }
-    // onAuthStateChanged will handle UI toggle
-  } catch (err) {
-    console.error("Google Sign-in error:", err);
-    // Provide more debugging detail for common cases
-    if (err.code === 'auth/popup-blocked') {
-      alert("Popup blocked. Allow popups for this site and try again.");
-    } else if (err.code === 'auth/cancelled-popup-request' || err.code === 'auth/popup-closed-by-user') {
-      alert("Popup closed. Try signing in again.");
-    } else if (err.code === 'auth/operation-not-allowed') {
-      alert("Google sign-in not enabled in Firebase. Enable it in Firebase Console.");
-    } else if (err.code === 'auth/network-request-failed') {
-      alert("Network error. Check your connection.");
-    } else {
-      alert("Google Sign-in failed: " + (err.message || err.code || err));
-    }
-  }
-});
-
-// sign out
-document.getElementById("signoutBtn").addEventListener("click", async () => {
-  try {
-    await signOut(auth);
-  } catch (err) {
-    console.error("Sign out error:", err);
-    alert("Sign out failed: " + (err.message || err));
-  }
-});
-
-// ------ AUTH STATE: hide authBox and show sendArea on login ------
-onAuthStateChanged(auth, async user => {
-  try {
-    const profileName = document.getElementById("profileName");
-    const uidEl = document.getElementById("uid");
-    const sendArea = document.getElementById("sendArea");
-    const adminPanel = document.getElementById("adminPanel");
-    const authBox = document.getElementById("authBox");
-    const signoutBtn = document.getElementById("signoutBtn");
-
-    if (user) {
-      // ensure user doc exists (if email/password signup handled earlier it exists)
-      const uRef = doc(db,"users",user.uid);
-      const uSnap = await getDoc(uRef);
-      let chatId = uSnap.exists() ? uSnap.data().chatId : generateGuestName();
-      let stars = uSnap.exists() ? uSnap.data().stars : 0;
-      const isAdmin = uSnap.exists() ? !!uSnap.data().isAdmin : (user.email && user.email.toLowerCase()==="paygeda@gmail.com");
-
-      currentUser = { uid: user.uid, chatId, stars, isAdmin };
-
-      // UI toggle - exactly same layout, only showing/hiding containers
-      authBox.style.display = "none";           // hide the auth box completely
-      sendArea.style.display = "flex";         // show type bar
-      signoutBtn.style.display = "block";      // show signout
-      document.getElementById("authMsg").textContent = "";
-
-      profileName.textContent = chatId;
-      uidEl.textContent = user.uid;
-      document.getElementById("starCount").textContent = stars || 0;
-      adminPanel.style.display = isAdmin ? "block" : "none";
-
-      // Messages subscription (identical visual rendering)
-      const messagesRef = collection(db,"messages");
-      const messagesQuery = query(messagesRef, orderBy("timestamp","asc"));
-      onSnapshot(messagesQuery, snap => {
-        const messagesEl = document.getElementById("messages");
-        messagesEl.innerHTML = "";
-        snap.forEach(d => {
-          const data = d.data();
-          const msgEl = document.createElement("div");
-          msgEl.classList.add("msg");
-          if (data.chatId === currentUser.chatId) msgEl.classList.add("me");
-          const color = getColorForUser(data.chatId || data.user || "Anon");
-          msgEl.innerHTML = `<div class="meta" style="color:${color}">${data.chatId || data.user || "Anon"}:</div><div class="content">${data.text}</div>`;
-          messagesEl.appendChild(msgEl);
-        });
-        messagesEl.scrollTop = messagesEl.scrollHeight;
-      });
-
-    } else {
-      // signed out: show auth box, hide send area — preserving original layout
-      currentUser = null;
-      authBox.style.display = "block";
-      sendArea.style.display = "none";
-      signoutBtn.style.display = "none";
-      profileName.textContent = generateGuestName();
-      uidEl.textContent = "—";
-      adminPanel.style.display = "none";
-      document.getElementById("starCount").textContent = 0;
-      // Clear messages view (we keep messages visible — original design shows messages even for guests)
-      const messagesEl = document.getElementById("messages");
-      messagesEl.innerHTML = "";
-    }
-  } catch (err) {
-    console.error("onAuthStateChanged handler error:", err);
-  }
-});
-
-// ------ Sending messages (only when logged in) ------
-document.getElementById("sendBtn").addEventListener("click", async () => {
-  try {
-    const text = document.getElementById("messageInput").value.trim();
-    if (!text || !currentUser) return;
-    await addDoc(collection(db,"messages"), {
-      chatId: currentUser.chatId,
-      text,
-      timestamp: serverTimestamp()
-    });
-    document.getElementById("messageInput").value = "";
-  } catch (err) {
-    console.error("Send message error:", err);
-    alert("Failed to send message: " + (err.message || err));
-  }
-});
-
-// ------ Stars (unchanged behavior) ------
-const starCountEl = document.getElementById("starCount");
-const starPopup = document.getElementById("starPopup");
-const starText = document.getElementById("starText");
-document.getElementById("closeStar").addEventListener("click",()=>{starPopup.style.display="none";});
-const milestones = [50,100,200,500];
-async function giveStar(){
-  if(!currentUser) return;
-  try {
-    const userRef = doc(db,"users",currentUser.uid);
-    const userSnap = await getDoc(userRef);
-    let stars = userSnap.exists()?userSnap.data().stars:0;
-    stars+=1;
-    await updateDoc(userRef,{stars});
-    currentUser.stars = stars;
-    starCountEl.textContent=stars;
-    if(milestones.includes(stars)|| (stars>500 && stars%500===0)){
-      starText.innerHTML=`Congratulations! You reached ${stars} ⭐ milestone!`;
-      starPopup.style.display="block";
-      setTimeout(()=>{starPopup.style.display="none";},4000);
-    }
-  } catch(err){
-    console.error("giveStar error:", err);
+// Scroll lock
+function scrollMessages(){
+  const messagesEl = document.getElementById("messages");
+  if(messagesEl.scrollHeight - messagesEl.scrollTop - messagesEl.clientHeight < 100){
+    messagesEl.scrollTop = messagesEl.scrollHeight;
   }
 }
-setInterval(giveStar,10000);
 
-// ------ Admin buttons (unchanged UI) ------
-document.getElementById("giveStarAdmin").addEventListener("click",async()=>{
-  if(!currentUser || !currentUser.isAdmin) return alert("Admin only");
-  const uid = prompt("Enter UID to give +1 star");
-  if(!uid) return;
-  const ref = doc(db,"users",uid);
-  const snap = await getDoc(ref);
-  if(!snap.exists()) return alert("UID not found");
-  const stars = (snap.data().stars||0)+1;
-  await updateDoc(ref,{stars});
-  alert(`User now has ${stars} ⭐`);
+// ... keep your existing Firebase auth, signup, signin, google sign-in, etc ...
+
+// Optimistic send
+const sendBtn = document.getElementById("sendBtn");
+sendBtn.addEventListener("click", async () => {
+  const text = document.getElementById("messageInput").value.trim();
+  if(!text || !currentUser) return;
+  document.getElementById("messageInput").value = "";
+  // optimistic
+  const messagesEl = document.getElementById("messages");
+  const msgEl = document.createElement("div");
+  msgEl.classList.add("msg","me");
+  msgEl.innerHTML = `<div class="meta" style="color:${getColorForUser(currentUser.chatId)}">${currentUser.chatId}:</div><div class="content">${text}</div>`;
+  messagesEl.appendChild(msgEl);
+  scrollMessages();
+
+  try {
+    await addDoc(collection(db,"messages"),{chatId:currentUser.chatId,text,timestamp:serverTimestamp()});
+  } catch(err){ console.error(err); }
 });
 
-document.getElementById("whitelistEmailAdmin").addEventListener("click",async()=>{
-  if(!currentUser || !currentUser.isAdmin) return alert("Admin only");
-  const email = prompt("Enter email to whitelist");
-  if(!email) return;
-  await addDoc(collection(db,"whitelist"),{email: email.toLowerCase()});
-  alert("Email whitelisted: "+email);
-});
+// Star bump
+function bumpStars(){
+  const starCountEl = document.getElementById("starCount");
+  starCountEl.classList.add("bump");
+  setTimeout(()=>starCountEl.classList.remove("bump"),300);
+}
+
+// Admin logout button
+document.getElementById("logoutAdmin").addEventListener("click", ()=> signOut(auth));
+
 </script>
 </body>
 </html>
