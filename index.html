@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>XiXi Chatroom</title>
+  <title>Xixi Chatroom</title>
   <style>
     body {
       margin: 0;
@@ -15,150 +15,163 @@
       height: 100vh;
     }
     header {
-      background: deeppink;
-      padding: 10px;
       text-align: center;
-      font-size: 24px;
+      padding: 15px;
+      background: black;
+      color: deeppink;
+      font-size: 28px;
       font-weight: bold;
-      color: white;
     }
-    #chat-container {
+    #chat {
       flex: 1;
-      display: flex;
-      flex-direction: column;
-      padding: 10px;
       overflow-y: auto;
-    }
-    #message-input {
-      display: flex;
       padding: 10px;
-      border-top: 1px solid #333;
     }
-    #message-input input {
-      flex: 1;
+    #login-box {
+      text-align: center;
       padding: 10px;
-      border: none;
-      border-radius: 5px;
-      margin-right: 10px;
     }
-    #message-input button {
-      background: deeppink;
-      border: none;
+    #googleBtn {
       padding: 10px 20px;
+      border: none;
       border-radius: 5px;
+      background: deeppink;
       color: white;
       font-weight: bold;
       cursor: pointer;
     }
-    #auth-section {
-      text-align: center;
-      padding: 20px;
-    }
-    .hidden {
-      display: none;
-    }
-    .chat-message {
-      margin: 5px 0;
-      padding: 8px;
+    #messageInput {
+      width: 80%;
+      padding: 10px;
+      border: none;
       border-radius: 5px;
     }
-    .me { background: deeppink; color: white; align-self: flex-end; }
-    .other { background: #222; color: white; align-self: flex-start; }
+    #sendBtn {
+      padding: 10px 15px;
+      border: none;
+      border-radius: 5px;
+      background: deeppink;
+      color: white;
+      cursor: pointer;
+    }
+    .message {
+      margin: 5px 0;
+      padding: 8px;
+      border-radius: 8px;
+      background: #222;
+    }
+    .admin-controls {
+      display: none;
+      margin-left: 10px;
+      font-size: 12px;
+      cursor: pointer;
+      color: red;
+    }
   </style>
 </head>
 <body>
-  <header>XiXi Chat 💋</header>
+  <header>XiXi Chatroom</header>
 
-  <div id="auth-section">
-    <button id="googleLogin">Sign in with Google</button>
+  <div id="login-box">
+    <button id="googleBtn">Sign in with Google</button>
+    <p id="login-status">Not logged in.</p>
   </div>
 
-  <div id="chat-container" class="hidden"></div>
+  <div id="chat"></div>
 
-  <div id="message-input" class="hidden">
-    <input type="text" id="messageBox" placeholder="Type your message...">
+  <div id="inputBox" style="display:flex; padding:10px;">
+    <input id="messageInput" type="text" placeholder="Type a message..." disabled />
     <button id="sendBtn">Send</button>
   </div>
 
-  <!-- Firebase -->
-  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js"></script>
+  <script type="module">
+    // 🔹 Firebase imports
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-app.js";
+    import { getFirestore, collection, addDoc, onSnapshot, serverTimestamp, deleteDoc, doc }
+      from "https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore.js";
+    import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged }
+      from "https://www.gstatic.com/firebasejs/10.13.1/firebase-auth.js";
 
-  <script>
-    // ✅ Your Firebase Config
+    // 🔹 Firebase Config (yours)
     const firebaseConfig = {
       apiKey: "AIzaSyDbKz4ef_eUDlCukjmnK38sOwueYuzqoao",
       authDomain: "metaverse-1010.firebaseapp.com",
       projectId: "metaverse-1010",
-      storageBucket: "metaverse-1010.firebasestorage.app",
+      storageBucket: "metaverse-1010.appspot.com",
       messagingSenderId: "1044064238233",
       appId: "1:1044064238233:web:2fbdfb811cb0a3ba349608",
       measurementId: "G-S77BMC266C"
     };
 
-    firebase.initializeApp(firebaseConfig);
-    const auth = firebase.auth();
-    const db = firebase.firestore();
+    // 🔹 Init
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const auth = getAuth(app);
+    const provider = new GoogleAuthProvider();
 
-    const googleBtn = document.getElementById("googleLogin");
-    const chatContainer = document.getElementById("chat-container");
-    const msgInput = document.getElementById("messageBox");
-    const sendBtn = document.getElementById("sendBtn");
-    const msgSection = document.getElementById("message-input");
-    const authSection = document.getElementById("auth-section");
+    // Elements
+    const loginStatus = document.getElementById("login-status");
+    const msgInput = document.getElementById("messageInput");
+    const chatBox = document.getElementById("chat");
 
-    // ✅ Google Sign-in
-    googleBtn.addEventListener("click", async () => {
-      const provider = new firebase.auth.GoogleAuthProvider();
+    // Google login
+    document.getElementById("googleBtn").addEventListener("click", async () => {
       try {
-        await auth.signInWithPopup(provider);
+        await signInWithPopup(auth, provider);
       } catch (err) {
-        alert("Google login failed: " + err.message);
+        console.error("Google login failed:", err);
+        alert("Google login failed.");
       }
     });
 
-    // ✅ Show chat after login
-    auth.onAuthStateChanged(user => {
+    // Auth state
+    onAuthStateChanged(auth, (user) => {
       if (user) {
-        authSection.classList.add("hidden");
-        chatContainer.classList.remove("hidden");
-        msgSection.classList.remove("hidden");
-        loadMessages();
+        loginStatus.innerText = `Welcome, ${user.displayName}`;
+        msgInput.disabled = false;
+      } else {
+        loginStatus.innerText = "Not logged in.";
+        msgInput.disabled = true;
       }
     });
 
-    // ✅ Send message
-    sendBtn.addEventListener("click", async () => {
+    // Send message
+    document.getElementById("sendBtn").addEventListener("click", async () => {
       const user = auth.currentUser;
       if (!user || msgInput.value.trim() === "") return;
-
-      await db.collection("messages").add({
+      await addDoc(collection(db, "messages"), {
         text: msgInput.value,
-        uid: user.uid,
-        name: user.displayName || "Guest",
-        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+        user: user.displayName,
+        email: user.email,
+        createdAt: serverTimestamp()
       });
-
       msgInput.value = "";
     });
 
-    // ✅ Load messages
-    function loadMessages() {
-      db.collection("messages").orderBy("timestamp")
-        .onSnapshot(snapshot => {
-          chatContainer.innerHTML = "";
-          snapshot.forEach(doc => {
-            const msg = doc.data();
-            const div = document.createElement("div");
-            div.classList.add("chat-message");
-            div.classList.add(msg.uid === auth.currentUser.uid ? "me" : "other");
-            div.textContent = `${msg.name}: ${msg.text}`;
-            chatContainer.appendChild(div);
-          });
-          chatContainer.scrollTop = chatContainer.scrollHeight;
-        });
-    }
+    // Listen for messages
+    onSnapshot(collection(db, "messages"), (snapshot) => {
+      chatBox.innerHTML = "";
+      snapshot.forEach((docSnap) => {
+        const data = docSnap.data();
+        const div = document.createElement("div");
+        div.className = "message";
+        div.innerText = `${data.user}: ${data.text}`;
+
+        // Admin delete button
+        if (auth.currentUser && auth.currentUser.email === "paygeda@gmail.com") {
+          const delBtn = document.createElement("span");
+          delBtn.className = "admin-controls";
+          delBtn.innerText = "🗑 Delete";
+          delBtn.style.display = "inline";
+          delBtn.onclick = async () => {
+            await deleteDoc(doc(db, "messages", docSnap.id));
+          };
+          div.appendChild(delBtn);
+        }
+
+        chatBox.appendChild(div);
+      });
+    });
   </script>
 </body>
 </html>
