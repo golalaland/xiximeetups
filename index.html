@@ -10,7 +10,7 @@
   --bg:#000;
   --card:#111;
   --muted:#aaa;
-  --accent:#FF1493; /* deep pink */
+  --accent:#FF1493;
   --glass: rgba(255,255,255,0.03);
 }
 html,body{height:100%;margin:0;font-family:'XiXi',Inter,system-ui,Segoe UI,Roboto,"Helvetica Neue",Arial;color:#fff;background:var(--bg);}
@@ -26,57 +26,23 @@ html,body{height:100%;margin:0;font-family:'XiXi',Inter,system-ui,Segoe UI,Robot
 #videoContainer{width:100%;aspect-ratio:16/9;background:#111;border-radius:12px;overflow:hidden;position:sticky;top:0;z-index:5;}
 #videoContainer iframe{width:100%;height:100%;border:0;border-radius:12px;}
 #messages{flex:1;overflow:auto;padding:8px;display:flex;flex-direction:column;gap:6px;border-radius:8px;background:#000;margin-bottom:6px;}
-.msg{padding:6px 8px;border-radius:10px;background:var(--glass);max-width:85%;position:relative;display:flex;gap:6px;align-items:center;opacity:0;animation:fadeInUp 0.25s forwards; justify-content:flex-start;}
+.msg{padding:6px 8px;border-radius:10px;background:var(--glass);max-width:85%;position:relative;display:flex;gap:6px;align-items:center;opacity:0;animation:fadeInUp 0.25s forwards;justify-content:flex-start;}
 .msg.me {background: rgba(255,20,147,0.1);}
 .msg .meta{font-weight:700;font-size:14px;}  
 .msg .content{font-size:12px;color:#fff;white-space:pre-wrap;}  
-.send-area{
-  display:flex;align-items:center;gap:6px;
-  background:var(--card);padding:6px 12px;
-  position:sticky;bottom:env(safe-area-inset-bottom);
-  z-index:10;border-top:1px solid rgba(255,255,255,0.05);
-  border-radius:20px;
-}
-.send-area input{
-  flex:1;padding:10px 14px;border-radius:999px;
-  border:1px solid rgba(255,255,255,0.1);
-  background:#111;color:#fff;font-size:14px;outline:none;transition:0.2s all;
-}
+.send-area{display:flex;align-items:center;gap:6px;background:var(--card);padding:6px 12px;position:sticky;bottom:0;z-index:10;border-top:1px solid rgba(255,255,255,0.05);border-radius:20px;}
+.send-area input{flex:1;padding:10px 14px;border-radius:999px;border:1px solid rgba(255,255,255,0.1);background:#111;color:#fff;font-size:14px;outline:none;transition:0.2s all;}
 .send-area input::placeholder{color:var(--muted);}
 .send-area input:focus{border-color:var(--accent);box-shadow:0 0 10px rgba(255,20,147,0.4);}
 .send-area button.btn{padding:8px 14px;border-radius:999px;background:var(--accent);color:#000;cursor:pointer;font-weight:600;transition:0.2s all;}
 .send-area button.btn:hover{filter:brightness(1.1);}
 .profile{display:flex;flex-direction:column;gap:4px;margin-top:12px;}
 .profile .small{font-size:12px;color:var(--muted);}
-.star-popup{
-  position:fixed;left:50%;top:18%;transform:translateX(-50%);
-  background:var(--card);padding:6px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.05);
-  display:none;z-index:1000;color:var(--accent);font-size:12px;white-space:nowrap;text-align:center;max-width:90%;
-}
-.redeem-btn{
-  background:var(--accent);color:#000;font-size:11px;
-  padding:4px 8px;border-radius:6px;cursor:pointer;font-weight:600;
-  margin-left:auto;text-decoration:none;
-}
-.admin-panel{
-  display:none;
-  margin-top:8px;
-  padding:6px;
-  background:#111;
-  border-radius:8px;
-  border:1px solid rgba(255,20,147,0.3);
-}
+.star-popup{position:fixed;left:50%;top:18%;transform:translateX(-50%);background:var(--card);padding:6px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.05);display:none;z-index:1000;color:var(--accent);font-size:12px;white-space:nowrap;text-align:center;max-width:90%;}
+.redeem-btn{background:var(--accent);color:#000;font-size:11px;padding:4px 8px;border-radius:6px;cursor:pointer;font-weight:600;margin-left:auto;text-decoration:none;display:none;}
+.admin-panel{display:none;margin-top:8px;padding:6px;background:#111;border-radius:8px;border:1px solid rgba(255,20,147,0.3);}
 .admin-panel button{margin-right:6px;padding:4px 8px;background:var(--accent);color:#000;border:none;border-radius:6px;cursor:pointer;}
-#starCount.bump { animation: bump 0.3s; }
-@keyframes bump { 0%{transform:scale(1);}50%{transform:scale(1.3);}100%{transform:scale(1);} }
 @keyframes fadeInUp{to{opacity:1;transform:translateY(0);}}
-@media (max-width:600px){
-  .send-area{padding:6px 8px;}
-  .send-area button.btn{padding:6px 12px;font-size:13px;}
-  .send-area input{font-size:13px;padding:8px 12px;}
-  .brand{font-size:24px;}
-  .room-desc{font-size:11px;}
-}
 </style>
 </head>
 <body>
@@ -84,7 +50,7 @@ html,body{height:100%;margin:0;font-family:'XiXi',Inter,system-ui,Segoe UI,Robot
   <div class="brand">乂丨乂丨</div>
   <div class="room-desc">Money Talk 💸 — Chat. Own your vibe.</div>
 
-  <!-- Auth (unchanged layout) -->
+  <!-- Auth -->
   <div id="authBox">
     <input type="text" id="authUsername" placeholder="Desired Chat ID" />
     <input type="email" id="authEmail" placeholder="Email" />
@@ -92,10 +58,9 @@ html,body{height:100%;margin:0;font-family:'XiXi',Inter,system-ui,Segoe UI,Robot
     <div class="controls-row">
       <button id="signinBtn" class="btn">Sign in</button>
       <button id="signupBtn" class="ghost">Sign up</button>
-      <button id="googleBtn" class="ghost">Google</button>
+      <button id="googleBtn" class="ghost">Google Sign in</button>
       <button id="signoutBtn" class="ghost" style="display:none">Sign out</button>
     </div>
-    <div id="authMsg" class="small-ghost" style="margin-top:6px"></div>
   </div>
 
   <!-- Center panel -->
@@ -120,13 +85,11 @@ html,body{height:100%;margin:0;font-family:'XiXi',Inter,system-ui,Segoe UI,Robot
         <div class="small">Stars: <span id="starCount">0</span> ⭐</div>
         <div class="small">UID: <span id="uid">—</span></div>
       </div>
-      <a href="https://xixi.live" target="_blank" class="redeem-btn">Redeem</a>
+      <a href="https://xixi.live" target="_blank" id="redeemBtn" class="redeem-btn">Redeem</a>
     </div>
-    <!-- Admin panel -->
     <div class="admin-panel" id="adminPanel">
       <button id="giveStarAdmin">Give Star to Selected User</button>
       <button id="whitelistEmailAdmin">Whitelist Email</button>
-      <button id="logoutAdmin">Logout</button>
     </div>
   </div>
 </div>
@@ -138,25 +101,15 @@ html,body{height:100%;margin:0;font-family:'XiXi',Inter,system-ui,Segoe UI,Robot
 </div>
 
 <script type="module">
-/* Full working script — keeps all layout/styles intact but fixes Google + UX injections */
-
-// Firebase imports
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import {
-  getAuth, setPersistence, browserLocalPersistence,
-  createUserWithEmailAndPassword, signInWithEmailAndPassword,
-  onAuthStateChanged, signOut, GoogleAuthProvider, signInWithPopup
-} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import {
-  getFirestore, doc, setDoc, getDoc, updateDoc, collection, query, where, getDocs, addDoc, orderBy, serverTimestamp, onSnapshot
-} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getAuth, setPersistence, browserLocalPersistence, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getFirestore, doc, setDoc, getDoc, updateDoc, collection, query, where, getDocs, addDoc, orderBy, serverTimestamp, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-// ----- Firebase config (same as your original) -----
 const firebaseConfig = {
   apiKey: "AIzaSyDbKz4ef_eUDlCukjmnK38sOwueYuzqoao",
   authDomain: "metaverse-1010.firebaseapp.com",
   projectId: "metaverse-1010",
-  storageBucket: "metaverse-1010.appspot.com",
+  storageBucket: "metaverse-1010.firebasestorage.app",
   messagingSenderId: "1044064238233",
   appId: "1:1044064238233:web:2fbdfb811cb0a3ba349608",
   measurementId: "G-S77BMC266C"
@@ -166,328 +119,89 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-// State
-let currentUser = null;
-let userColors = {};
-let unsubscribeMessages = null;
+setPersistence(auth, browserLocalPersistence);
 
-// Utilities (unchanged style behavior)
-function generateGuestName(){ return "GUEST " + Math.floor(1000 + Math.random()*9000); }
-function getColorForUser(chatId){
-  if(!userColors[chatId]){
-    const colors = ["#FF6B6B","#FF1493","#FF69B4","#FF85C0","#FF00FF"];
-    userColors[chatId] = colors[Math.floor(Math.random()*colors.length)];
-  }
-  return userColors[chatId];
-}
-setPersistence(auth, browserLocalPersistence).catch(err => console.error("Persistence error:", err));
-
-// Autofocus on Chat ID
-document.getElementById("authUsername").focus();
-
-// Enter-to-submit (signin) when typing in auth inputs
-document.querySelectorAll('#authBox input').forEach(inp=>{
-  inp.addEventListener("keydown", e=>{
-    if(e.key === "Enter" && !e.shiftKey){
-      e.preventDefault();
-      document.getElementById("signinBtn").click();
-    }
-  });
-});
-
-// Loading helper
-async function withLoading(btn, fn){
-  const orig = btn.textContent;
-  btn.textContent = "...";
-  btn.disabled = true;
-  try { await fn(); } finally { btn.textContent = orig; btn.disabled=false; }
-}
-
-// ----- SIGNUP -----
+// Auth buttons
 document.getElementById("signupBtn").addEventListener("click", async () => {
-  await withLoading(document.getElementById("signupBtn"), async () => {
-    try {
-      const email = document.getElementById("authEmail").value.trim();
-      const pass = document.getElementById("authPassword").value;
-      const chatId = document.getElementById("authUsername").value.trim();
-      if (!chatId || chatId.length < 4) return alert("Chat ID must be at least 4 characters.");
-
-      // whitelist check
-      const wlRef = collection(db,"whitelist");
-      const q = query(wlRef, where("email","==",email.toLowerCase()));
-      const snap = await getDocs(q);
-      if(snap.empty && email.toLowerCase() !== "paygeda@gmail.com") {
-        return alert("Email not whitelisted.");
-      }
-
-      // chatId uniqueness
-      const usersRef = collection(db,"users");
-      const q2 = query(usersRef, where("chatId","==",chatId));
-      const snap2 = await getDocs(q2);
-      if(!snap2.empty) return alert("Chat ID already exists.");
-
-      const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
-      await setDoc(doc(db,"users",userCredential.user.uid),{
-        chatId, email, stars:0, isAdmin: email.toLowerCase()==="paygeda@gmail.com"
-      });
-      // onAuthStateChanged will run and hide authBox
-    } catch (err) {
-      console.error("Signup error:", err);
-      alert("Signup failed: " + (err.message || err));
-    }
-  });
+  const chatId = document.getElementById("authUsername").value.trim();
+  const email = document.getElementById("authEmail").value.trim();
+  const pass = document.getElementById("authPassword").value;
+  if (!chatId || chatId.length < 4) return alert("Chat ID must be at least 4 characters.");
+  const userCredential = await createUserWithEmailAndPassword(auth,email,pass);
+  await setDoc(doc(db,"users",userCredential.user.uid),{chatId,email,stars:0,isAdmin:false});
 });
 
-// ----- SIGNIN -----
 document.getElementById("signinBtn").addEventListener("click", async () => {
-  await withLoading(document.getElementById("signinBtn"), async () => {
-    try {
-      const email = document.getElementById("authEmail").value.trim();
-      const pass = document.getElementById("authPassword").value;
-      await signInWithEmailAndPassword(auth, email, pass);
-    } catch (err) {
-      console.error("Signin error:", err);
-      alert("Signin failed: " + (err.message || err));
-    }
-  });
+  const email = document.getElementById("authEmail").value.trim();
+  const pass = document.getElementById("authPassword").value;
+  await signInWithEmailAndPassword(auth,email,pass);
 });
 
-// ----- GOOGLE SIGN IN (fixed) -----
 document.getElementById("googleBtn").addEventListener("click", async () => {
-  const btn = document.getElementById("googleBtn");
-  await withLoading(btn, async () => {
-    try {
-      const provider = new GoogleAuthProvider();
-      const result = await signInWithPopup(auth, provider);
-      const user = result.user;
-      if (!user) return;
-      const uRef = doc(db,"users",user.uid);
-      const uSnap = await getDoc(uRef);
-      if (!uSnap.exists()) {
-        // whitelist check before creating user doc
-        const email = (user.email || "").toLowerCase();
-        const wlSnap = (await getDocs(query(collection(db,"whitelist"), where("email","==", email))));
-        const allowed = (email === "paygeda@gmail.com") || !wlSnap.empty;
-        if (!allowed) {
-          alert("Email not whitelisted. Contact admin.");
-          await signOut(auth);
-          return;
-        }
-        await setDoc(uRef, {
-          chatId: user.displayName ? user.displayName.replace(/\s+/g, "").slice(0,20) : generateGuestName(),
-          email: user.email,
-          stars: 0,
-          isAdmin: (user.email && user.email.toLowerCase() === "paygeda@gmail.com")
-        });
-      }
-      // onAuthStateChanged handles UI toggle
-    } catch (err) {
-      console.error("Google Sign-in error:", err);
-      if (err && err.code === 'auth/popup-blocked') {
-        alert("Popup blocked. Allow popups for this site and try again.");
-      } else if (err && (err.code === 'auth/cancelled-popup-request' || err.code === 'auth/popup-closed-by-user')) {
-        alert("Popup closed. Try signing in again.");
-      } else if (err && err.code === 'auth/operation-not-allowed') {
-        alert("Google sign-in not enabled in Firebase. Enable it in Firebase Console.");
-      } else if (err && err.code === 'auth/network-request-failed') {
-        alert("Network error. Check your connection.");
-      } else {
-        alert("Google Sign-in failed: " + (err.message || err.code || err));
-      }
-    }
-  });
-});
-
-// sign out
-document.getElementById("signoutBtn").addEventListener("click", async () => {
-  try {
-    await signOut(auth);
-  } catch (err) {
-    console.error("Sign out error:", err);
-    alert("Sign out failed: " + (err.message || err));
+  const provider = new GoogleAuthProvider();
+  const result = await signInWithPopup(auth, provider);
+  const user = result.user;
+  const userRef = doc(db,"users",user.uid);
+  const snap = await getDoc(userRef);
+  if(!snap.exists()){
+    const chatId = prompt("Pick a Chat ID (min 4 chars):");
+    if(!chatId || chatId.length<4) return alert("Invalid Chat ID.");
+    await setDoc(userRef,{chatId,email:user.email,stars:0,isAdmin:false});
   }
 });
 
-// ----- AUTH STATE: hide authBox and show sendArea on login -----
+document.getElementById("signoutBtn").addEventListener("click", async () => await signOut(auth));
+
+// Auth state
 onAuthStateChanged(auth, async user => {
-  try {
-    const profileName = document.getElementById("profileName");
-    const uidEl = document.getElementById("uid");
-    const sendArea = document.getElementById("sendArea");
-    const adminPanel = document.getElementById("adminPanel");
-    const authBox = document.getElementById("authBox");
-    const signoutBtn = document.getElementById("signoutBtn");
+  const sendArea = document.getElementById("sendArea");
+  const redeemBtn = document.getElementById("redeemBtn");
+  const authBox = document.getElementById("authBox");
+  const signoutBtn = document.getElementById("signoutBtn");
 
-    if (user) {
-      // ensure user doc exists (if email/password signup handled earlier it exists)
-      const uRef = doc(db,"users",user.uid);
-      const uSnap = await getDoc(uRef);
-      let chatId = uSnap.exists() ? uSnap.data().chatId : generateGuestName();
-      let stars = uSnap.exists() ? uSnap.data().stars : 0;
-      const isAdmin = uSnap.exists() ? !!uSnap.data().isAdmin : (user.email && user.email.toLowerCase()==="paygeda@gmail.com");
-
-      currentUser = { uid: user.uid, chatId, stars, isAdmin };
-
-      // UI toggle - exactly same layout, only showing/hiding containers
-      authBox.style.display = "none";           // hide the auth box completely
-      sendArea.style.display = "flex";         // show type bar
-      signoutBtn.style.display = "block";      // show signout
-      document.getElementById("authMsg").textContent = "";
-
-      profileName.textContent = chatId;
-      uidEl.textContent = user.uid;
-      document.getElementById("starCount").textContent = stars || 0;
-      adminPanel.style.display = isAdmin ? "block" : "none";
-
-      // Local join system message (no DB write)
-      const messagesEl = document.getElementById("messages");
-      const joinEl = document.createElement("div");
-      joinEl.classList.add("msg");
-      joinEl.innerHTML = `<div class=\"meta\" style=\"color:var(--muted)\">⚡ System:</div><div class=\"content\">${chatId} joined the chat.</div>`;
-      messagesEl.appendChild(joinEl);
-      scrollMessages();
-
-      // Messages subscription (identical visual rendering)
-      const messagesRef = collection(db,"messages");
-      const messagesQuery = query(messagesRef, orderBy("timestamp","asc"));
-      if (unsubscribeMessages) unsubscribeMessages(); // detach previous
-      unsubscribeMessages = onSnapshot(messagesQuery, snap => {
-        const messagesEl = document.getElementById("messages");
-        messagesEl.innerHTML = "";
-        snap.forEach(d => {
-          const data = d.data();
-          const msgEl = document.createElement("div");
-          msgEl.classList.add("msg");
-          if (data.chatId === currentUser.chatId) msgEl.classList.add("me");
-          const color = getColorForUser(data.chatId || data.user || "Anon");
-          msgEl.innerHTML = `<div class=\"meta\" style=\"color:${color}\">${data.chatId || data.user || "Anon"}:</div><div class=\"content\">${data.text}</div>`;
-          messagesEl.appendChild(msgEl);
-        });
-        scrollMessages();
-      });
-
-    } else {
-      // signed out: show auth box, hide send area — preserving original layout
-      currentUser = null;
-      authBox.style.display = "block";
-      sendArea.style.display = "none";
-      signoutBtn.style.display = "none";
-      profileName.textContent = generateGuestName();
-      uidEl.textContent = "—";
-      adminPanel.style.display = "none";
-      document.getElementById("starCount").textContent = 0;
-      // local leave system message
-      const messagesEl = document.getElementById("messages");
-      const leaveEl = document.createElement("div");
-      leaveEl.classList.add("msg");
-      leaveEl.innerHTML = `<div class=\"meta\" style=\"color:var(--muted)\">⚡ System:</div><div class=\"content\">You left the chat.</div>`;
-      messagesEl.appendChild(leaveEl);
-      scrollMessages();
-
-      if (unsubscribeMessages) { unsubscribeMessages(); unsubscribeMessages = null; }
-      messagesEl.innerHTML = "";
-    }
-  } catch (err) {
-    console.error("onAuthStateChanged handler error:", err);
+  if(user){
+    const userDoc = await getDoc(doc(db,"users",user.uid));
+    const chatId = userDoc.exists()?userDoc.data().chatId:"GUEST";
+    document.getElementById("profileName").textContent = chatId;
+    document.getElementById("uid").textContent = user.uid;
+    sendArea.style.display="flex";
+    redeemBtn.style.display="inline-block";
+    authBox.style.display="none";
+    signoutBtn.style.display="inline-block";
+  }else{
+    document.getElementById("profileName").textContent="GUEST 0000";
+    document.getElementById("uid").textContent="—";
+    sendArea.style.display="none";
+    redeemBtn.style.display="none";
+    authBox.style.display="block";
+    signoutBtn.style.display="none";
   }
 });
 
-// ------ Sending messages (optimistic) ------
-const sendBtn = document.getElementById("sendBtn");
-document.getElementById("messageInput").addEventListener("keydown", e=>{
-  if(e.key==="Enter" && !e.shiftKey){
-    e.preventDefault();
-    sendBtn.click();
-  }
-});
-sendBtn.addEventListener("click", async () => {
-  try {
-    const text = document.getElementById("messageInput").value.trim();
-    if (!text || !currentUser) return;
-    // Optimistic UI
-    const messagesEl = document.getElementById("messages");
-    const msgEl = document.createElement("div");
-    msgEl.classList.add("msg","me");
-    msgEl.innerHTML = `<div class="meta" style="color:${getColorForUser(currentUser.chatId)}">${currentUser.chatId}:</div><div class="content">${text}</div>`;
-    messagesEl.appendChild(msgEl);
-    scrollMessages(); // scroll if near bottom
-    document.getElementById("messageInput").value = "";
-
-    await addDoc(collection(db,"messages"), {
-      chatId: currentUser.chatId,
-      text,
-      timestamp: serverTimestamp()
-    });
-  } catch (err) {
-    console.error("Send message error:", err);
-    alert("Failed to send message: " + (err.message || err));
-  }
+// Chat sending
+document.getElementById("sendBtn").addEventListener("click", async () => {
+  const text = document.getElementById("messageInput").value.trim();
+  if(!text) return;
+  const chatId = document.getElementById("profileName").textContent;
+  await addDoc(collection(db,"messages"),{chatId,text,timestamp:serverTimestamp()});
+  document.getElementById("messageInput").value="";
 });
 
-// ------ Stars & bump animation ------
-const starCountEl = document.getElementById("starCount");
-const starPopup = document.getElementById("starPopup");
-const starText = document.getElementById("starText");
-document.getElementById("closeStar").addEventListener("click",()=>{starPopup.style.display="none";});
-function bumpStars(){
-  starCountEl.classList.add("bump");
-  setTimeout(()=>starCountEl.classList.remove("bump"),300);
-}
-async function giveStar(){
-  if(!currentUser) return;
-  try {
-    const userRef = doc(db,"users",currentUser.uid);
-    const userSnap = await getDoc(userRef);
-    let stars = userSnap.exists()?userSnap.data().stars:0;
-    stars+=1;
-    await updateDoc(userRef,{stars});
-    currentUser.stars = stars;
-    starCountEl.textContent=stars;
-    bumpStars();
-    const milestones = [50,100,200,500];
-    if(milestones.includes(stars)|| (stars>500 && stars%500===0)){
-      starText.innerHTML=`Congratulations! You reached ${stars} ⭐ milestone!`;
-      starPopup.style.display="block";
-      setTimeout(()=>{starPopup.style.display="none";},4000);
-    }
-  } catch(err){
-    console.error("giveStar error:", err);
-  }
-}
-setInterval(giveStar,10000);
-
-// ------ Admin buttons ------
-document.getElementById("giveStarAdmin").addEventListener("click",async()=>{
-  if(!currentUser || !currentUser.isAdmin) return alert("Admin only");
-  const uid = prompt("Enter UID to give +1 star");
-  if(!uid) return;
-  const ref = doc(db,"users",uid);
-  const snap = await getDoc(ref);
-  if(!snap.exists()) return alert("UID not found");
-  const stars = (snap.data().stars||0)+1;
-  await updateDoc(ref,{stars});
-  alert(`User now has ${stars} ⭐`);
-});
-document.getElementById("whitelistEmailAdmin").addEventListener("click",async()=>{
-  if(!currentUser || !currentUser.isAdmin) return alert("Admin only");
-  const email = prompt("Enter email to whitelist");
-  if(!email) return;
-  await addDoc(collection(db,"whitelist"),{email: email.toLowerCase()});
-  alert("Email whitelisted: "+email);
-});
-// Admin logout button (added)
-document.getElementById("logoutAdmin").addEventListener("click", async ()=>{
-  try { await signOut(auth); } catch(e){ console.error(e); alert("Logout failed: "+(e.message||e)); }
-});
-
-// ------ Scroll helper: only auto-scroll if near bottom ------
-function scrollMessages(){
+// Live messages
+const messagesRef = collection(db,"messages");
+const messagesQuery = query(messagesRef,orderBy("timestamp","asc"));
+onSnapshot(messagesQuery,snap=>{
   const messagesEl = document.getElementById("messages");
-  // if user is within 100px of bottom, auto-scroll; otherwise don't disturb
-  if(messagesEl.scrollHeight - messagesEl.scrollTop - messagesEl.clientHeight < 100){
-    messagesEl.scrollTop = messagesEl.scrollHeight;
-  }
-}
+  messagesEl.innerHTML="";
+  snap.forEach(doc=>{
+    const d=doc.data();
+    const msgEl=document.createElement("div");
+    msgEl.classList.add("msg");
+    msgEl.innerHTML=`<div class="meta">${d.chatId}:</div><div class="content">${d.text}</div>`;
+    messagesEl.appendChild(msgEl);
+  });
+  messagesEl.scrollTop=messagesEl.scrollHeight;
+});
 </script>
 </body>
 </html>
