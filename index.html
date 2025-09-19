@@ -89,6 +89,7 @@ html,body{height:100%;margin:0;font-family:'XiXi',Inter,system-ui,Segoe UI,Robot
     <div class="controls-row">
       <button id="signinBtn" class="btn">Sign in</button>
       <button id="signupBtn" class="ghost">Sign up</button>
+      <button id="googleBtn" class="ghost">Google</button>
       <button id="signoutBtn" class="ghost" style="display:none">Sign out</button>
     </div>
     <div id="authMsg" class="small-ghost" style="margin-top:6px"></div>
@@ -134,8 +135,14 @@ html,body{height:100%;margin:0;font-family:'XiXi',Inter,system-ui,Segoe UI,Robot
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getAuth, setPersistence, browserLocalPersistence, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { getFirestore, doc, setDoc, getDoc, updateDoc, collection, query, where, getDocs, addDoc, orderBy, serverTimestamp, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { 
+  getAuth, setPersistence, browserLocalPersistence, 
+  createUserWithEmailAndPassword, signInWithEmailAndPassword, 
+  onAuthStateChanged, signOut, GoogleAuthProvider, signInWithPopup 
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { 
+  getFirestore, doc, setDoc, getDoc, updateDoc, collection, query, where, getDocs, addDoc, orderBy, serverTimestamp, onSnapshot 
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 // Firebase Config
 const firebaseConfig = {
@@ -179,7 +186,6 @@ document.getElementById("signupBtn").addEventListener("click", async () => {
   const chatId = document.getElementById("authUsername").value.trim();
   if (!chatId || chatId.length < 4) return alert("Chat ID must be at least 4 characters.");
 
-  // Check if email is whitelisted
   const whitelistRef = collection(db,"whitelist");
   const q = query(whitelistRef, where("email","==",email));
   const snap = await getDocs(q);
@@ -202,6 +208,27 @@ document.getElementById("signinBtn").addEventListener("click", async () => {
   await signInWithEmailAndPassword(auth,email,pass);
 });
 
+document.getElementById("googleBtn").addEventListener("click", async () => {
+  const provider = new GoogleAuthProvider();
+  try {
+    const result = await signInWithPopup(auth, provider);
+    const user = result.user;
+    const usersRef = doc(db, "users", user.uid);
+    const snap = await getDoc(usersRef);
+    if (!snap.exists()) {
+      await setDoc(usersRef, {
+        chatId: user.displayName || generateGuestName(),
+        email: user.email,
+        stars: 0,
+        isAdmin: user.email.toLowerCase() === "paygeda@gmail.com"
+      });
+    }
+  } catch (err) {
+    console.error("Google Sign-in error:", err);
+    alert("Google Sign-in failed.");
+  }
+});
+
 document.getElementById("signoutBtn").addEventListener("click", async () => await signOut(auth));
 
 onAuthStateChanged(auth, async user => {
@@ -222,7 +249,6 @@ onAuthStateChanged(auth, async user => {
     sendArea.style.display = "flex";
     adminPanel.style.display = isAdmin?"block":"none";
 
-    // Messages
     const messagesRef = collection(db,"messages");
     const messagesQuery = query(messagesRef,orderBy("timestamp","asc"));
     onSnapshot(messagesQuery,snap=>{
@@ -261,7 +287,7 @@ document.getElementById("sendBtn").addEventListener("click",async()=>{
   document.getElementById("messageInput").value="";
 });
 
-// Stars milestone
+// Stars
 const starCountEl = document.getElementById("starCount");
 const starPopup = document.getElementById("starPopup");
 const starText = document.getElementById("starText");
@@ -286,7 +312,7 @@ async function giveStar(){
 }
 setInterval(giveStar,10000);
 
-// Admin buttons
+// Admin
 document.getElementById("giveStarAdmin").addEventListener("click",async()=>{
   const uid = prompt("Enter UID to give +1 star");
   if(!uid) return;
