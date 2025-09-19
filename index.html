@@ -53,10 +53,10 @@ html,body{height:100%;margin:0;font-family:'XiXi',Inter,system-ui,Segoe UI,Robot
   display:none;z-index:1000;color:var(--accent);font-size:12px;white-space:nowrap;text-align:center;max-width:90%;
 }
 .redeem-btn{
+  display:none;
   background:var(--accent);color:#000;font-size:11px;
   padding:4px 8px;border-radius:6px;cursor:pointer;font-weight:600;
   margin-left:auto;text-decoration:none;
-  display:none;
 }
 .admin-panel{
   display:none;
@@ -90,7 +90,7 @@ html,body{height:100%;margin:0;font-family:'XiXi',Inter,system-ui,Segoe UI,Robot
     <div class="controls-row">
       <button id="signinBtn" class="btn">Sign in</button>
       <button id="signupBtn" class="ghost">Sign up</button>
-      <button id="googleSignBtn" class="btn">Sign in with Google</button>
+      <button id="googleSignInBtn" class="ghost">Sign in with Google</button>
       <button id="signoutBtn" class="ghost" style="display:none">Sign out</button>
     </div>
     <div id="authMsg" class="small-ghost" style="margin-top:6px"></div>
@@ -114,7 +114,7 @@ html,body{height:100%;margin:0;font-family:'XiXi',Inter,system-ui,Segoe UI,Robot
   <div class="profile">
     <div style="display:flex;align-items:center;justify-content:space-between;">
       <div>
-        <strong id="profileName">GUEST 1234</strong>
+        <strong id="profileName">GUEST</strong>
         <div class="small">Stars: <span id="starCount">0</span> ⭐</div>
         <div class="small">UID: <span id="uid">—</span></div>
       </div>
@@ -126,8 +126,9 @@ html,body{height:100%;margin:0;font-family:'XiXi',Inter,system-ui,Segoe UI,Robot
       <button id="whitelistEmailAdmin">Whitelist Email</button>
       <button id="adminLogout">Logout Admin</button>
     </div>
-    <!-- Change Chat ID -->
-    <button id="changeChatIdBtn" class="btn" style="display:none;margin-top:6px;">Change Chat ID</button>
+    <div style="margin-top:8px;">
+      <button id="changeChatIdBtn" style="display:none;">Change Chat ID</button>
+    </div>
   </div>
 </div>
 
@@ -142,7 +143,6 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
 import { getAuth, setPersistence, browserLocalPersistence, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { getFirestore, doc, setDoc, getDoc, updateDoc, collection, query, where, getDocs, addDoc, orderBy, serverTimestamp, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-// Firebase Config
 const firebaseConfig = {
   apiKey: "AIzaSyDbKz4ef_eUDlCukjmnK38sOwueYuzqoao",
   authDomain: "metaverse-1010.firebaseapp.com",
@@ -159,11 +159,6 @@ const db = getFirestore(app);
 
 let currentUser = null;
 let userColors = {};
-
-// Guest random ID
-function generateGuestName(){
-  return "GUEST " + Math.floor(1000 + Math.random()*9000);
-}
 
 // Color per user
 function getColorForUser(chatId){
@@ -207,112 +202,97 @@ document.getElementById("signinBtn").addEventListener("click", async () => {
   await signInWithEmailAndPassword(auth,email,pass);
 });
 
-// Google Sign-In
-document.getElementById("googleSignBtn").addEventListener("click", async () => {
+// Google Sign In
+document.getElementById("googleSignInBtn").addEventListener("click", async()=>{
   const provider = new GoogleAuthProvider();
-  await signInWithPopup(auth, provider);
+  try{
+    const result = await signInWithPopup(auth,provider);
+    const user = result.user;
+    const usersRef = collection(db,"users");
+    const userDoc = await getDoc(doc(db,"users",user.uid));
+    if(!userDoc.exists()){
+      let chatId = prompt("Choose a chat ID (4+ chars)","");
+      if(!chatId || chatId.length<4) chatId = "GUEST"+Math.floor(1000+Math.random()*9000);
+      await setDoc(doc(db,"users",user.uid),{chatId,email:user.email,stars:0,isAdmin:user.email.toLowerCase()==="paygeda@gmail.com"});
+    }
+  }catch(err){console.error(err); alert("Google sign in failed.");}
 });
 
 document.getElementById("signoutBtn").addEventListener("click", async () => await signOut(auth));
 
-onAuthStateChanged(auth, async user => {
-  const profileName = document.getElementById("profileName");
-  const uidEl = document.getElementById("uid");
-  const sendArea = document.getElementById("sendArea");
-  const adminPanel = document.getElementById("adminPanel");
-  const redeemBtn = document.getElementById("redeemBtn");
-  const changeChatIdBtn = document.getElementById("changeChatIdBtn");
-  const authBox = document.getElementById("authBox");
-
-  if(user){
-    const userDoc = await getDoc(doc(db,"users",user.uid));
-    let chatId = userDoc.exists()?userDoc.data().chatId:generateGuestName();
-    let stars = userDoc.exists()?userDoc.data().stars:0;
-    const isAdmin = userDoc.exists()?userDoc.data().isAdmin:false;
-
-    currentUser = {uid:user.uid, chatId, stars, isAdmin};
-    profileName.textContent = chatId;
-    uidEl.textContent = user.uid;
-    sendArea.style.display = "flex";
-    adminPanel.style.display = isAdmin?"block":"none";
-    redeemBtn.style.display = "inline-block";
-    changeChatIdBtn.style.display = "inline-block";
-    authBox.style.display = "none";
-
-    // Messages
-    const messagesRef = collection(db,"messages");
-    const messagesQuery = query(messagesRef,orderBy("timestamp","asc"));
-    onSnapshot(messagesQuery,snap=>{
-      const messagesEl = document.getElementById("messages");
-      messagesEl.innerHTML = "";
-      snap.forEach(doc=>{
-        const data = doc.data();
-        const msgEl = document.createElement("div");
-        msgEl.classList.add("msg");
-        if(data.uid===user.uid) msgEl.classList.add("me");
-        msgEl.innerHTML = `<span class="meta" style="color:${getColorForUser(data.chatId)}">${data.chatId}</span>: <span class="content">${data.content}</span>`;
-        messagesEl.appendChild(msgEl);
-        messagesEl.scrollTop = messagesEl.scrollHeight;
-      });
-    });
-
-    // Star count live
-    const userRef = doc(db,"users",user.uid);
-    onSnapshot(userRef,docSnap=>{
-      if(docSnap.exists()) currentUser.stars = docSnap.data().stars;
-      document.getElementById("starCount").textContent = currentUser.stars;
-    });
-  } else {
-    currentUser = null;
-    profileName.textContent = generateGuestName();
-    uidEl.textContent = "—";
-    sendArea.style.display = "none";
-    adminPanel.style.display = "none";
-    redeemBtn.style.display = "none";
-    changeChatIdBtn.style.display = "none";
-    authBox.style.display = "block";
-  }
-});
-
 // Change Chat ID
 document.getElementById("changeChatIdBtn").addEventListener("click", async ()=>{
-  if(!currentUser) return;
-  let newChatId = prompt("Enter new Chat ID:");
-  if(!newChatId || newChatId.length<4) return;
-  const usersRef = collection(db,"users");
-  const chatQ = query(usersRef,where("chatId","==",newChatId));
-  const chatSnap = await getDocs(chatQ);
-  if(!chatSnap.empty) return alert("Chat ID exists");
-  await updateDoc(doc(db,"users",currentUser.uid),{chatId:newChatId});
+  let newId = prompt("Enter new Chat ID","");
+  if(!newId || newId.length<4) return;
+  await updateDoc(doc(db,"users",currentUser.uid),{chatId:newId});
+  location.reload(); // auto reload to reflect
 });
 
-// Send message
-document.getElementById("sendBtn").addEventListener("click", async ()=>{
-  if(!currentUser) return;
-  const val = document.getElementById("messageInput").value.trim();
-  if(!val) return;
-  await addDoc(collection(db,"messages"),{
-    uid:currentUser.uid,
-    chatId:currentUser.chatId,
-    content:val,
-    timestamp:serverTimestamp()
-  });
-  document.getElementById("messageInput").value="";
+// Admin functions
+document.getElementById("giveStarAdmin").addEventListener("click", async ()=>{
+  const uid = prompt("Enter user UID to give star:");
+  if(!uid) return;
+  const userRef = doc(db,"users",uid);
+  const userSnap = await getDoc(userRef);
+  if(!userSnap.exists()){alert("User not found."); return;}
+  await updateDoc(userRef,{stars:(userSnap.data().stars||0)+1});
+  alert("Star given successfully!");
+});
+document.getElementById("adminLogout").addEventListener("click", async ()=>await signOut(auth));
+
+// Firestore live updates
+onAuthStateChanged(auth, async user=>{
+  currentUser=user;
+  if(user){
+    const userRef = doc(db,"users",user.uid);
+    const snap = await getDoc(userRef);
+    if(!snap.exists()) return;
+    const data = snap.data();
+    document.getElementById("profileName").textContent=data.chatId;
+    document.getElementById("starCount").textContent=data.stars;
+    document.getElementById("uid").textContent=user.uid;
+    document.getElementById("authBox").style.display="none";
+    document.getElementById("sendArea").style.display="flex";
+    document.getElementById("redeemBtn").style.display="inline-block";
+    if(data.isAdmin) document.getElementById("adminPanel").style.display="block";
+    else document.getElementById("adminPanel").style.display="none";
+    document.getElementById("signoutBtn").style.display="inline-block";
+    document.getElementById("changeChatIdBtn").style.display="inline-block";
+
+    // Live star listener
+    onSnapshot(userRef,snap=>{
+      const d = snap.data();
+      if(d) document.getElementById("starCount").textContent=d.stars||0;
+    });
+  }else{
+    document.getElementById("authBox").style.display="block";
+    document.getElementById("sendArea").style.display="none";
+    document.getElementById("redeemBtn").style.display="none";
+    document.getElementById("adminPanel").style.display="none";
+    document.getElementById("signoutBtn").style.display="none";
+    document.getElementById("changeChatIdBtn").style.display="none";
+    document.getElementById("profileName").textContent="GUEST";
+    document.getElementById("starCount").textContent="0";
+    document.getElementById("uid").textContent="—";
+  }
 });
 
-// Admin actions
-document.getElementById("adminLogout").addEventListener("click", async ()=>{
-  await signOut(auth);
-});
-
-// Stars auto-increment every 10 seconds
+// Auto increment stars every 10 seconds
 setInterval(async ()=>{
   if(currentUser){
-    const userRef = doc(db,"users",currentUser.uid);
-    currentUser.stars++;
-    await updateDoc(userRef,{stars:currentUser.stars});
+    const userRef=doc(db,"users",currentUser.uid);
+    const snap=await getDoc(userRef);
+    if(!snap.exists()) return;
+    await updateDoc(userRef,{stars:(snap.data().stars||0)+1});
+    // show popup
+    const popup = document.getElementById("starPopup");
+    popup.style.display="block";
+    setTimeout(()=>popup.style.display="none",2000);
   }
 },10000);
+
+document.getElementById("closeStar").addEventListener("click", ()=>document.getElementById("starPopup").style.display="none");
+
 </script>
 </body>
 </html>
